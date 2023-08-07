@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Cart Software</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Smart Cart Software</h1>
+    </header>
+
+    <div class="container">
+        <div class="cart">
+            <h2>Cart</h2>
+            <ul id="cart-items">
+                <!-- Cart items will be dynamically added here -->
+            </ul>
+            <div class="total-price" id="total-price">Total Price: $0.00</div>
+            <input type="hidden" id="hidden-total-price" value="0">
+
+            <!-- Add a section to display the payment functionalities -->
+            <section id="payment-section" class="hidden">
+                <h2>Payment</h2>
+                <p class="total-amount">Total Amount: <span id="total-amount">$0.00</span></p>
+                <button class="payment-button" onclick="processPayment()">Process Payment</button>
+            </section>
+
+            <!-- Modify the purchase button to toggle the payment section -->
+            <button id="purchase-button" disabled onclick="togglePaymentSection()">Purchase</button>
+
+        </div>
+        <!-- Add a hidden input field to store the total price -->
+
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script> <!-- Add the Google Sheets API script -->
+    <script async defer src="https://accounts.google.com/gsi/client"></script>
+    <script src="script.js"></script>
+</body>
+</html>

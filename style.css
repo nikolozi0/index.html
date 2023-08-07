@@ -1,0 +1,107 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+}
+
+.container {
+    width: 600px;
+    margin: 100px auto;
+    text-align: center;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+}
+
+.product-list,
+.cart {
+    flex-basis: 60%;
+    border: 1px solid #ccc;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1,
+h2 {
+    text-align: center;
+}
+
+ul {
+    padding: 0;
+}
+
+li {
+    list-style-type: none;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#cart-items li {
+    justify-content: space-between;
+}
+
+.product-list img,
+.cart img {
+    max-width: 50px;
+    max-height: 50px;
+    margin-right: 10px;
+}
+
+/* Style for the invisible input field */
+.invisible-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Add a class to hide elements */
+.hidden {
+    display: none;
+}
+
+/* Style for the payment section */
+#payment-section {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-top: 20px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
