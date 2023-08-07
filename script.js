@@ -11,7 +11,7 @@ const cartProducts = new Map();
 // Function to find a product by its barcode from Google Sheets data
 async function findProductByBarcodeFromGoogleSheets(barcode) {
   try {
-    const sheetRange = 'Sheet1!A1:Z1000'; // Update the sheet name and range to include image URLs (Column D)
+    const sheetRange = 'Sheet1!A1:Z1000'; 
     const response = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: sheetRange,
@@ -33,9 +33,7 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
   }
 }
 
-// ... (Your existing code above)
 
-// Function to remove a product from the cart and update the cart display
 // Function to remove a product from the cart and update the cart display
 function removeFromCart(product) {
   console.log("Removing product:", product); // Log the product being removed
@@ -243,6 +241,8 @@ function updateTotalPriceAndCartDisplay() {
   // Update the cart display
   updateCartDisplay();
 
+  const totalAmountElement = document.getElementById("total-amount");
+  totalAmountElement.textContent = `$${calculateTotalPrice().toFixed(2)}`;
   // Enable the purchase button if the total price is greater than 0
   const purchaseButton = document.getElementById("purchase-button");
   purchaseButton.disabled = totalPrice <= 0;
