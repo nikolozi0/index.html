@@ -1,9 +1,9 @@
 // // Google Sheets API settings
-// const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; // Replace with your actual Google Sheets ID
-// const API_KEY = "AIzaSyCU7DGoc9M3LDkccUZeFITDc5jBoGqnkA8"; // Replace with your actual API Key
+// const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; 
+// const API_KEY = "AIzaSyCU7DGoc9M3LDkccUZeFITDc5jBoGqnkA8"; 
 
 // Google Sheets API settings
-const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; // Replace with your actual Google Sheets ID
+const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; 
 
 // Keep track of the products in the cart with a Map
 const cartProducts = new Map();
@@ -11,7 +11,7 @@ const cartProducts = new Map();
 // Function to find a product by its barcode from Google Sheets data
 async function findProductByBarcodeFromGoogleSheets(barcode) {
   try {
-    const sheetRange = 'Sheet1!A1:Z1000'; 
+    const sheetRange = 'Sheet1!A1:Z1000';
     const response = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: sheetRange,
@@ -19,11 +19,23 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
 
     const values = response.result.values;
     console.log("Google Sheets API Response:", values); // Log the API response
+
+    // Find the header row to get the indexes of each field
+    const headerRow = values[0];
+    const nameIndex = headerRow.indexOf('Name');
+    const priceIndex = headerRow.indexOf('Price');
+    const barcodeIndex = headerRow.indexOf('Barcode');
+    const weightIndex = headerRow.indexOf('Weight');
+    const imageIndex = headerRow.indexOf('Image');
+
     if (values && values.length) {
-      const product = values.find((row) => row[2] === barcode);
+      const product = values.find((row) => row[barcodeIndex] === barcode);
       if (product) {
-        const [name, price, _, image] = product;
-        return { barcode, name, price: parseFloat(price), image };
+        const name = product[nameIndex];
+        const price = parseFloat(product[priceIndex]);
+        const weight = parseFloat(product[weightIndex]);
+        const image = product[imageIndex];
+        return { barcode, name, price, image, weight };
       }
     }
     return null; // Barcode not found in the Google Sheets data
@@ -36,8 +48,6 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
 
 // Function to remove a product from the cart and update the cart display
 function removeFromCart(product) {
-  console.log("Removing product:", product); // Log the product being removed
-
   if (cartProducts.has(product.barcode)) {
     const cartProduct = cartProducts.get(product.barcode);
     if (cartProduct.quantity > 1) {
@@ -46,45 +56,33 @@ function removeFromCart(product) {
       cartProducts.delete(product.barcode);
     }
   }
-
-  // Update the total price and cart display
   updateTotalPriceAndCartDisplay();
 }
-
 
 // Function to add a product to the cart and update the cart display
 function addToCart(product) {
-  // Check if the product is already in the cart
   if (cartProducts.has(product.barcode)) {
-    // If it is, increment the product quantity in the cart
     const cartProduct = cartProducts.get(product.barcode);
     cartProduct.quantity++;
   } else {
-    // If it's a new product, add it to the cart with a quantity of 1
     cartProducts.set(product.barcode, { ...product, quantity: 1 });
   }
-
-  // Update the total price and cart display
   updateTotalPriceAndCartDisplay();
 }
 
+// Function to calculate the total price of items in the cart
 function calculateTotalPrice() {
   let totalPrice = 0;
   cartProducts.forEach((product) => {
-      totalPrice += product.price * product.quantity;
+    totalPrice += product.price * product.quantity;
   });
   return totalPrice;
 }
 
-// Function to update the total price display on the webpage
-
-
 // Function to update the cart display
 function updateCartDisplay() {
   const cartItems = document.getElementById("cart-items");
-  cartItems.innerHTML = ""; // Clear the cart items before updating
-
-  // Loop through the cart products and add them to the cart display
+  cartItems.innerHTML = "";
   cartProducts.forEach((product) => {
     const li = document.createElement("li");
     li.textContent = `${product.name} - $${product.price} (Quantity: ${product.quantity})`;
@@ -96,11 +94,9 @@ function updateCartDisplay() {
     const deleteButton = document.createElement("button");
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
-      // When the delete button is clicked, remove the product from the cart
       cartProducts.delete(product.barcode);
       removeFromCart(product);
-
-      updateCartDisplay(); // Update the cart display after removing the product
+      updateCartDisplay();
     });
 
     li.appendChild(deleteButton);
@@ -108,14 +104,8 @@ function updateCartDisplay() {
   });
 }
 
-
-
-
-// Function to handle barcode input from the "Barcode to PC" application
+// Function to handle barcode input
 function handleBarcodeInput(barcode) {
-  console.log("Scanned barcode:", barcode); // Log the barcode value
-
-  // Check if the barcode is empty or undefined
   if (!barcode) {
     console.log("Barcode value is empty or undefined.");
     return;
@@ -123,26 +113,183 @@ function handleBarcodeInput(barcode) {
 
   findProductByBarcodeFromGoogleSheets(barcode).then((product) => {
     if (product) {
+      currentProduct = product; // Store the currently scanned product
       addToCart(product);
+      compareProductWeight(product);
     } else {
       console.log("Product not found for barcode:", barcode);
     }
   });
 }
 
-// Define the processPayment function
-function processPayment() {
-  console.log("Payment processing...");
+let previousWeight = 0;
+let currentProduct = null; // Define the variable here
 
-  // Get references to the payment status and total amount elements
+// Function to compare the product's weight and display the result
+// ... (existing code)
+
+// Function to compare the product's weight and display the result
+function compareProductWeight(product) {
+  if (!product || isNaN(product.weight)) {
+    console.log("Product weight is undefined or not a number.");
+    return;
+  }
+
+  // Get the current weight from the weight-display element
+  const currentWeightText = document.getElementById("output").textContent;
+  const currentWeight = parseFloat(currentWeightText);
+
+  // Calculate the weight difference between current weight and product weight
+  const weightDifference = Math.abs(currentWeight - product.weight);
+
+  const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+
+  if (weightDifference <= 10) {
+    weightComparisonResultElement.textContent = `${product.name} weight is correct.`;
+  } else if (currentWeight > product.weight) {
+    weightComparisonResultElement.textContent = `${product.name} got heavier.`;
+  } else if (currentWeight < product.weight) {
+    weightComparisonResultElement.textContent = `${product.name} got lighter.`;
+  }
+
+  weightComparisonResultElement.classList.remove("hidden"); // Show the element
+}
+
+// ... (existing code)
+
+
+
+
+// Monitor for changes in weight display
+const weightDisplayElement = document.getElementById("output");
+let currentDisplayedWeight = 0;
+
+setInterval(() => {
+  const currentWeightText = weightDisplayElement.textContent;
+  const currentWeight = parseFloat(currentWeightText);
+  
+  if (currentWeight !== currentDisplayedWeight) {
+    currentDisplayedWeight = currentWeight;
+
+    if (currentProduct) {
+      // Trigger weight comparison only if there's a product and weight changed
+      compareProductWeight(currentProduct);
+    }
+  }
+}, 200);
+
+
+
+
+// ... Your existing code ...
+
+
+
+// NFC reading logic
+async function readNFCData() {
+  try {
+    const nfcPermissionStatus = await navigator.permissions.query({ name: 'nfc' });
+
+    if (nfcPermissionStatus.state === 'granted') {
+      const nfc = new NDEFReader();
+      try {
+        await nfc.scan();
+        console.log("Scan started successfully.");
+        nfc.onreadingerror = () => {
+          console.log("Cannot read data from the NFC tag. Try another one?");
+        };
+        nfc.onreading = event => {
+          const scannedData = new TextDecoder().decode(event.message.records[0].data);
+          handleScannedNFCData(scannedData); // Handle scanned NFC data
+          console.log("NDEF message read.");
+        };
+      } catch (error) {
+        console.log(`Error! Scan failed to start: ${error}.`);
+      }
+    } else if (nfcPermissionStatus.state === 'prompt') {
+      console.log('NFC permission prompt is displayed.');
+      // Handle the case where user interaction is required to grant permission
+    } else {
+      console.log('NFC permission not granted.');
+      // Handle the case where permission is denied
+    }
+  } catch (error) {
+    console.error('Error while reading NFC data:', error);
+  }
+}
+
+// Attach NFC reading function to the "Process Payment" button click event
+const paymentButton = document.querySelector(".payment-button");
+if (paymentButton) {
+  paymentButton.addEventListener("click", readNFCData);
+}
+
+
+
+async function processPaymentWithBankAPI(nfcData) {
+  // Construct the paymentData object using NFC data or any other necessary information
+  const paymentData = {
+    nfcData: nfcData,
+    // ... other payment-related data
+  };
+
+  // Clear previous payment status and display loading indicator
   const paymentStatusElement = document.getElementById("payment-status");
-  const totalAmountElement = document.getElementById("total-amount");
+  paymentStatusElement.textContent = "Processing payment...";
+  
+  try {
+    const response = await fetch('BANK_API_ENDPOINT', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(paymentData),
+    });
 
-  // Update the total amount if needed
-  const totalPrice = calculateTotalPrice(); // Calculate the total price
-  totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
-  initiateNFCScanning();
+    const responseData = await response.json();
 
+    if (response.ok) {
+      console.log('Payment successful:', responseData);
+      paymentStatusElement.textContent = "Payment Successful!";
+      // Update UI with success message, add to transaction history, etc.
+      updateTransactionHistory(paymentData, responseData);
+    } else {
+      console.error('Payment failed:', responseData);
+      paymentStatusElement.textContent = "Payment Failed!";
+      // Update UI with failure message, provide retry option, etc.
+      showRetryOption(paymentData);
+    }
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    paymentStatusElement.textContent = "Error processing payment";
+    // Update UI with error message, provide retry option, etc.
+    showRetryOption(paymentData);
+  }
+}
+
+// Function to show retry option in case of payment failure or error
+function showRetryOption(paymentData) {
+  // Display a retry button and handle its click event
+  const retryButton = document.getElementById("retry-button");
+  retryButton.style.display = "block";
+  retryButton.addEventListener("click", () => {
+    retryButton.style.display = "none";
+    processPaymentWithBankAPI(paymentData);
+  });
+}
+
+// Function to update transaction history
+function updateTransactionHistory(paymentData, responseData) {
+  // Add the transaction to a transaction history section in the UI
+  const transactionHistoryElement = document.getElementById("transaction-history");
+  const transactionEntry = document.createElement("div");
+  transactionEntry.classList.add("transaction-entry");
+  
+  const transactionInfo = document.createElement("p");
+  transactionInfo.textContent = `Amount: ${paymentData.amount}, Transaction ID: ${responseData.transactionId}`;
+  
+  transactionEntry.appendChild(transactionInfo);
+  transactionHistoryElement.appendChild(transactionEntry);
 }
 
 
@@ -195,35 +342,56 @@ function handleScannedNFCData(scannedData) {
   processPaymentWithBankAPI(scannedData);
 }
 
-function initiateNFCScanning() {
-  // Check if NFC API is available
-  if ('NDEFReader' in window) {
-    const nfcReader = new NDEFReader();
-    nfcReader.onreading = async (event) => {
-      try {
-        const ndefMessage = await nfcReader.read();
-        const firstRecord = ndefMessage.records[0];
-        const scannedData = new TextDecoder().decode(firstRecord.data);
+//connects arduino with project
 
-        // Handle the scanned NFC data (e.g., initiate payment process)
-        processPaymentWithNFCData(scannedData);
-      } catch (error) {
-        console.error('Error reading NFC tag:', error);
-        // Display NFC reading error message to the user
-        const paymentStatusElement = document.getElementById("payment-status");
-        paymentStatusElement.textContent = "Error reading NFC tag";
-      }
-    };
-    nfcReader.scan();
-  } else {
-    // NFC API not available
-    // Display message or provide alternative user experience
-    const paymentStatusElement = document.getElementById("payment-status");
-    paymentStatusElement.textContent = "NFC not supported";
-  }
-}
+        const connectButton = document.getElementById("connect-button");
+        let port;
+        
+
+        async function connectToSerialPort() {
+          if (!port) {
+            try {
+              port = await navigator.serial.requestPort();
+              await port.open({ baudRate: 9600 });
+              console.log("Serial port connected.");
+              startReadingData();
+              hideConnectButton();
+            } catch (error) {
+              console.error("Error connecting to serial port:", error);
+            }
+          } else {
+            console.log("Serial port is already connected.");
+          }
+        }
+        
+        async function startReadingData() {
+          const reader = port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              const data = new TextDecoder().decode(value);
+              output.textContent = data; // Update the output element with the received data
+            }
+          } catch (error) {
+            console.error("Error reading serial data:", error);
+          } finally {
+            await reader.releaseLock();
+            port.close();
+            port = null;
+            console.log("Serial port closed.");
+          }
+        }
+        
+        // Call connectToSerialPort() when the "Connect" button is clicked
+        connectButton.addEventListener("click", connectToSerialPort);
+        
 
 
+        function hideConnectButton() {
+          const connectButton = document.getElementById("connect-button");
+          connectButton.style.display = "none";
+        }
 
 
 function updateTotalPriceAndCartDisplay() {
@@ -265,6 +433,9 @@ function togglePaymentSection() {
       totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
   }
 }
+
+
+
 
 // Load Google Sheets API client library and initialize it
 gapi.load("client", initGoogleSheetsAPI);

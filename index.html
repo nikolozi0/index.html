@@ -18,24 +18,29 @@
                 <!-- Cart items will be dynamically added here -->
             </ul>
             <div class="total-price" id="total-price">Total Price: $0.00</div>
+            <button id="connect-button" >Connect to Arduino</button>
+            <div class="weight-display" id="output">Weight: N/A grams</div>
+            <p id="weight-comparison-result" class="hidden"></p>
+            <!-- Add an element to display the weight data -->
             <input type="hidden" id="hidden-total-price" value="0">
 
             <!-- Add a section to display the payment functionalities -->
             <section id="payment-section" class="hidden">
                 <h2>Payment</h2>
                 <p class="total-amount">Total Amount: <span id="total-amount">$0.00</span></p>
-                <button class="payment-button" onclick="processPayment()">Process Payment</button>
+                <button class="payment-button">Process Payment</button>
+                <p id="payment-status"></p>
+                <button id="retry-button" style="display: none;">Retry Payment</button>
+                <div id="transaction-history"></div>
             </section>
 
             <!-- Modify the purchase button to toggle the payment section -->
             <button id="purchase-button" disabled onclick="togglePaymentSection()">Purchase</button>
-
         </div>
-        <!-- Add a hidden input field to store the total price -->
 
     </div>
 
-    <script src="https://apis.google.com/js/api.js"></script> <!-- Add the Google Sheets API script -->
+    <script src="https://apis.google.com/js/api.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="script.js"></script>
 </body>
