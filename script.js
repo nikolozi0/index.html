@@ -49,26 +49,22 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
 // Function to remove a product from the cart and update the cart display
 function removeFromCart(product) {
   if (cartProducts.has(product.barcode)) {
-    const cartProduct = cartProducts.get(product.barcode);
-    if (cartProduct.quantity > 1) {
-      cartProduct.quantity--;
-    } else {
-      cartProducts.delete(product.barcode);
-    }
+    cartProducts.delete(product.barcode);
+    
   }
   updateTotalPriceAndCartDisplay();
+  updateCartDisplay();
 }
+
 
 // Function to add a product to the cart and update the cart display
 function addToCart(product) {
-  if (cartProducts.has(product.barcode)) {
-    const cartProduct = cartProducts.get(product.barcode);
-    cartProduct.quantity++;
-  } else {
-    cartProducts.set(product.barcode, { ...product, quantity: 1 });
-  }
+  const accumulatedWeight = product.weight ? product.weight : 0;
+  const newProduct = { ...product, quantity: 1, accumulatedWeight };
+  cartProducts.set(newProduct.barcode + Date.now(), newProduct);
   updateTotalPriceAndCartDisplay();
 }
+
 
 // Function to calculate the total price of items in the cart
 function calculateTotalPrice() {
@@ -79,13 +75,15 @@ function calculateTotalPrice() {
   return totalPrice;
 }
 
+
+
 // Function to update the cart display
 function updateCartDisplay() {
   const cartItems = document.getElementById("cart-items");
   cartItems.innerHTML = "";
   cartProducts.forEach((product) => {
     const li = document.createElement("li");
-    li.textContent = `${product.name} - $${product.price} (Quantity: ${product.quantity})`;
+    li.textContent = `${product.name} - $${product.price} `;
 
     const imageElement = document.createElement("img");
     imageElement.src = product.image;
@@ -94,15 +92,30 @@ function updateCartDisplay() {
     const deleteButton = document.createElement("button");
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
-      cartProducts.delete(product.barcode);
+      cartProducts.forEach((value, key) => {
+        if (value === product) {
+          cartProducts.delete(key);
+        }
+      });
       removeFromCart(product);
-      updateCartDisplay();
+      updateTotalPriceAndCartDisplay();
+      compareProductWeight();
     });
+    
 
     li.appendChild(deleteButton);
     cartItems.appendChild(li);
   });
 }
+
+function calculateAccumulatedWeight() {
+  let accumulatedWeight = 0;
+  cartProducts.forEach((product) => {
+    accumulatedWeight += product.accumulatedWeight;
+  });
+  return accumulatedWeight;
+}
+
 
 // Function to handle barcode input
 function handleBarcodeInput(barcode) {
@@ -120,45 +133,52 @@ function handleBarcodeInput(barcode) {
       console.log("Product not found for barcode:", barcode);
     }
   });
+  compareProductWeight();
 }
 
 let previousWeight = 0;
 let currentProduct = null; // Define the variable here
 
 // Function to compare the product's weight and display the result
-// ... (existing code)
-
-// Function to compare the product's weight and display the result
 function compareProductWeight(product) {
+  
   if (!product || isNaN(product.weight)) {
     console.log("Product weight is undefined or not a number.");
     return;
   }
-
-  // Get the current weight from the weight-display element
+  
   const currentWeightText = document.getElementById("output").textContent;
   const currentWeight = parseFloat(currentWeightText);
 
+  const accumulatedWeight = calculateAccumulatedWeight();
+  
+ 
   // Calculate the weight difference between current weight and product weight
-  const weightDifference = Math.abs(currentWeight - product.weight);
+  const weightDifference = Math.abs(currentWeight - accumulatedWeight);
 
+  const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+ 
 
   if (weightDifference <= 10) {
     weightComparisonResultElement.textContent = `${product.name} weight is correct.`;
-  } else if (currentWeight > product.weight) {
-    weightComparisonResultElement.textContent = `${product.name} got heavier.`;
-  } else if (currentWeight < product.weight) {
-    weightComparisonResultElement.textContent = `${product.name} got lighter.`;
+  } else if (currentWeight > accumulatedWeight) {
+    weightComparisonResultElement.textContent = `${product.weight} current weight is greater that accumulated weight.`;
+  } else if (currentWeight < accumulatedWeight) {
+    weightComparisonResultElement.textContent = `${accumulatedWeight} accumulated weight is greater that current weight.`;
   }
+  accumulatedWeightElement.textContent = `Product weight: ${accumulatedWeight.toFixed(2)} lbs`;
 
-  weightComparisonResultElement.classList.remove("hidden"); // Show the element
+  accumulatedWeightElement.classList.remove("hidden");
+  weightComparisonResultElement.classList.remove("hidden"); 
+
+  if (accumulatedWeight <= 0){
+    accumulatedWeightElement.classList.add("hidden");
+    weightComparisonResultElement.classList.add("hidden");
+    }
+  
+  
 }
-
-// ... (existing code)
-
-
-
 
 // Monitor for changes in weight display
 const weightDisplayElement = document.getElementById("output");
@@ -176,13 +196,7 @@ setInterval(() => {
       compareProductWeight(currentProduct);
     }
   }
-}, 200);
-
-
-
-
-// ... Your existing code ...
-
+}, 100);
 
 
 // NFC reading logic
@@ -224,13 +238,10 @@ if (paymentButton) {
   paymentButton.addEventListener("click", readNFCData);
 }
 
-
-
 async function processPaymentWithBankAPI(nfcData) {
   // Construct the paymentData object using NFC data or any other necessary information
   const paymentData = {
     nfcData: nfcData,
-    // ... other payment-related data
   };
 
   // Clear previous payment status and display loading indicator
@@ -296,7 +307,7 @@ function updateTransactionHistory(paymentData, responseData) {
 // Initialize Google Sheets API
 function initGoogleSheetsAPI() {
   gapi.client.init({
-    apiKey: 'AIzaSyCU7DGoc9M3LDkccUZeFITDc5jBoGqnkA8', // Replace with your actual API Key
+    apiKey: 'AIzaSyCU7DGoc9M3LDkccUZeFITDc5jBoGqnkA8', 
     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
   }).then(() => {
     console.log('Google Sheets API initialized.');
@@ -323,16 +334,8 @@ window.addEventListener("keypress", (event) => {
   }).catch((error) => {
     console.error('Error initializing Google Sheets API:', error);
   });
+  
 }
-
-function calculateTotalPrice() {
-  let totalPrice = 0;
-  cartProducts.forEach((product) => {
-    totalPrice += product.price * product.quantity;
-  });
-  return totalPrice;
-}
-
 
 // Function to handle scanned NFC data
 function handleScannedNFCData(scannedData) {
@@ -396,7 +399,7 @@ function handleScannedNFCData(scannedData) {
 
 function updateTotalPriceAndCartDisplay() {
   // Calculate the total price
-  
+  compareProductWeight(currentProduct);
   const totalPrice = calculateTotalPrice();
 
   // Update the total price display
@@ -433,9 +436,6 @@ function togglePaymentSection() {
       totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
   }
 }
-
-
-
 
 // Load Google Sheets API client library and initialize it
 gapi.load("client", initGoogleSheetsAPI);
