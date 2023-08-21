@@ -207,8 +207,6 @@ class DeviceNFC {
   }
 
   async init() {
-    const nfcerrortext = document.getElementById("nfcerrortext");
-
     try {
       this.reader = new NDEFReader();
       await this.reader.scan();
@@ -216,50 +214,52 @@ class DeviceNFC {
       this.reader.onreading = async (event) => {
         try {
           const records = event.message.records;
-          const decoder = new TextDecoder();
           for (const record of records) {
-            console.log("Record type:  " + record.recordType);
-            console.log("MIME type:    " + record.mediaType);
-            console.log("=== data ===\n" + decoder.decode(record.data));
-            await this.handleScannedNFCData(decoder.decode(record.data)); // Handle scanned NFC data
+            const data = new TextDecoder().decode(record.data);
+            await this.handleScannedNFCData(data); // Handle scanned NFC data
           }
         } catch (error) {
-          nfcerrortext.textContent = "Error while handling scanned NFC data: " + error;
+          throw new Error("Error while handling scanned NFC data: " + error);
         }
       };
 
       this.reader.onerror = (event) => {
-        nfcerrortext.textContent = "Cannot read data from the NFC tag. Try another one?";
+        throw new Error("Cannot read data from the NFC tag. Try another one?");
       };
     } catch (error) {
-      nfcerrortext.textContent = "Error! Scan failed to start: " + error;
+      throw new Error("Error! Scan failed to start: " + error);
     }
   }
 
   async handleScannedNFCData(data) {
-    // Handle the scanned NFC data here
-    const nfcerrortext = document.getElementById("nfcerrortext");
-    nfcerrortext.textContent = "NFC Data: " + data;
+    return data;
   }
 
   async readNFCData() {
     try {
       await this.init();
+      return new Promise((resolve) => {
+        this.handleScannedNFCData = resolve;
+      });
     } catch (error) {
-      const nfcerrortext = document.getElementById("nfcerrortext");
-      nfcerrortext.textContent = "Error while initializing NFC: " + error;
+      throw new Error("Error while initializing NFC: " + error);
     }
   }
 }
 
 const nfcDevice = new DeviceNFC();
 
+
 const nfcTestButton = document.getElementById("nfc-test-button");
 if (nfcTestButton) {
   nfcTestButton.addEventListener("click", () => {
     const nfcerrortext = document.getElementById("nfcerrortext");
     nfcerrortext.textContent = 'Reading NFC data...';
-    nfcDevice.readNFCData();
+    nfcDevice.readNFCData().then(data => {
+      nfcerrortext.textContent = 'NFC Data: ' + data;
+    }).catch(error => {
+      nfcerrortext.textContent = 'Error while reading NFC data: ' + error;
+    });
   });
 }
 
