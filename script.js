@@ -198,85 +198,112 @@ setInterval(() => {
   }
 }, 100);
 
+const nfcerrortext = document.getElementById("nfcerrortext"); // Move this outside the class
 
-// NFC reading logic
-async function readNFCData() {
-  try {
-    const nfcPermissionStatus = await navigator.permissions.query({ name: 'nfc' });
 
-    if (nfcPermissionStatus.state === 'granted') {
-      const nfc = new NDEFReader();
-      try {
-        await nfc.scan();
-        console.log("Scan started successfully.");
-        nfc.onreadingerror = () => {
-          console.log("Cannot read data from the NFC tag. Try another one?");
-        };
-        nfc.onreading = event => {
-          const scannedData = new TextDecoder().decode(event.message.records[0].data);
-          handleScannedNFCData(scannedData); // Handle scanned NFC data
-          console.log("NDEF message read.");
-        };
-      } catch (error) {
-        console.log(`Error! Scan failed to start: ${error}.`);
-      }
-    } else if (nfcPermissionStatus.state === 'prompt') {
-      console.log('NFC permission prompt is displayed.');
-      // Handle the case where user interaction is required to grant permission
-    } else {
-      console.log('NFC permission not granted.');
-      // Handle the case where permission is denied
+class DeviceNFC {
+  constructor() {
+    this.reader = null;
+  }
+
+  async init() {
+    const nfcerrortext = document.getElementById("nfcerrortext");
+
+    try {
+      this.reader = new NDEFReader();
+      await this.reader.scan();
+
+      this.reader.onreading = async (event) => {
+        try {
+          const records = event.message.records;
+          const decoder = new TextDecoder();
+          for (const record of records) {
+            console.log("Record type:  " + record.recordType);
+            console.log("MIME type:    " + record.mediaType);
+            console.log("=== data ===\n" + decoder.decode(record.data));
+            await this.handleScannedNFCData(decoder.decode(record.data)); // Handle scanned NFC data
+          }
+        } catch (error) {
+          nfcerrortext.textContent = "Error while handling scanned NFC data: " + error;
+        }
+      };
+
+      this.reader.onerror = (event) => {
+        nfcerrortext.textContent = "Cannot read data from the NFC tag. Try another one?";
+      };
+    } catch (error) {
+      nfcerrortext.textContent = "Error! Scan failed to start: " + error;
     }
-  } catch (error) {
-    console.error('Error while reading NFC data:', error);
+  }
+
+  async handleScannedNFCData(data) {
+    // Handle the scanned NFC data here
+    const nfcerrortext = document.getElementById("nfcerrortext");
+    nfcerrortext.textContent = "NFC Data: " + data;
+  }
+
+  async readNFCData() {
+    try {
+      await this.init();
+    } catch (error) {
+      const nfcerrortext = document.getElementById("nfcerrortext");
+      nfcerrortext.textContent = "Error while initializing NFC: " + error;
+    }
   }
 }
 
-// Attach NFC reading function to the "Process Payment" button click event
-const paymentButton = document.querySelector(".payment-button");
-if (paymentButton) {
-  paymentButton.addEventListener("click", readNFCData);
+const nfcDevice = new DeviceNFC();
+
+const nfcTestButton = document.getElementById("nfc-test-button");
+if (nfcTestButton) {
+  nfcTestButton.addEventListener("click", () => {
+    const nfcerrortext = document.getElementById("nfcerrortext");
+    nfcerrortext.textContent = 'Reading NFC data...';
+    nfcDevice.readNFCData();
+  });
 }
 
-async function processPaymentWithBankAPI(nfcData) {
-  // Construct the paymentData object using NFC data or any other necessary information
-  const paymentData = {
-    nfcData: nfcData,
-  };
 
-  // Clear previous payment status and display loading indicator
-  const paymentStatusElement = document.getElementById("payment-status");
-  paymentStatusElement.textContent = "Processing payment...";
+
+// // async function processPaymentWithBankAPI(nfcData) {
+// //   // Construct the paymentData object using NFC data or any other necessary information
+// //   const paymentData = {
+// //     nfcData: nfcData,
+// //   };
+
+//   // Clear previous payment status and display loading indicator
+//   const paymentStatusElement = document.getElementById("payment-status");
+//   paymentStatusElement.textContent = "Processing payment...";
   
-  try {
-    const response = await fetch('BANK_API_ENDPOINT', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(paymentData),
-    });
+//   try {
+//     const response = await fetch('BANK_API_ENDPOINT', {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify(paymentData),
+//     });
 
-    const responseData = await response.json();
+//     const responseData = await response.json();
 
-    if (response.ok) {
-      console.log('Payment successful:', responseData);
-      paymentStatusElement.textContent = "Payment Successful!";
-      // Update UI with success message, add to transaction history, etc.
-      updateTransactionHistory(paymentData, responseData);
-    } else {
-      console.error('Payment failed:', responseData);
-      paymentStatusElement.textContent = "Payment Failed!";
-      // Update UI with failure message, provide retry option, etc.
-      showRetryOption(paymentData);
-    }
-  } catch (error) {
-    console.error('Error processing payment:', error);
-    paymentStatusElement.textContent = "Error processing payment";
-    // Update UI with error message, provide retry option, etc.
-    showRetryOption(paymentData);
-  }
-}
+//     if (response.ok) {
+//       console.log('Payment successful:', responseData);
+//       paymentStatusElement.textContent = "Payment Successful!";
+//       // Update UI with success message, add to transaction history, etc.
+//       updateTransactionHistory(paymentData, responseData);
+//     } else {
+//       console.error('Payment failed:', responseData);
+//       paymentStatusElement.textContent = "Payment Failed!";
+//       // Update UI with failure message, provide retry option, etc.
+//       showRetryOption(paymentData);
+//     }
+//   } catch (error) {
+//     console.error('Error processing payment:', error);
+//     paymentStatusElement.textContent = "Error processing payment";
+//     // Update UI with error message, provide retry option, etc.
+//     showRetryOption(paymentData);
+//   }
+// }
 
 // Function to show retry option in case of payment failure or error
 function showRetryOption(paymentData) {
