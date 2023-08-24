@@ -225,8 +225,7 @@ class DeviceNFC {
       };
 
       this.reader.onerror = (event) => {
-        const paymentStatusElement = document.getElementById("payment-status");
-        paymentStatusElement.textContent = "Card is not detected.";
+        nfcerrortext.textContent = "Cannot read data from the NFC tag. Try another one?";
       };
     } catch (error) {
       throw new Error("Error! Scan failed to start: " + error);
@@ -234,15 +233,9 @@ class DeviceNFC {
   }
 
   async handleScannedNFCData(data) {
-    const paymentStatusElement = document.getElementById("payment-status");
-    paymentStatusElement.textContent = "Payment Successful!";
-    
-    // Reset the payment status after a delay (e.g., 3000 milliseconds = 3 seconds)
-    setTimeout(() => {
-      paymentStatusElement.textContent = "";
-      // Reload the page to restart the site
-      location.reload();
-    }, 4000); // Adjust the delay as needed.
+    // Handle the scanned NFC data here
+    const nfcerrortext = document.getElementById("nfcerrortext");
+    nfcerrortext.textContent = "NFC Data: " + data;
   }
 
   async readNFCData() {
@@ -258,6 +251,7 @@ class DeviceNFC {
 }
 
 const nfcDevice = new DeviceNFC();
+
 
 const nfcTestButton = document.getElementById("nfc-test-button");
 if (nfcTestButton) {
