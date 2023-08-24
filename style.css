@@ -70,6 +70,19 @@ button:hover {
     background-color: #45a049;
 }
 
+delete-button {
+    background-color: #d81d10;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+delete-button:hover {
+    background-color: #d32f2f;
+}
+
 #cart-items li {
     justify-content: space-between;
 }

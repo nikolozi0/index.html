@@ -198,8 +198,9 @@ setInterval(() => {
   }
 }, 100);
 
-const nfcerrortext = document.getElementById("nfcerrortext"); // Move this outside the class
 
+
+const nfcerrortext = document.getElementById("nfcerrortext"); // Move this outside the class
 
 class DeviceNFC {
   constructor() {
@@ -207,8 +208,6 @@ class DeviceNFC {
   }
 
   async init() {
-    const nfcerrortext = document.getElementById("nfcerrortext");
-
     try {
       this.reader = new NDEFReader();
       await this.reader.scan();
@@ -216,38 +215,44 @@ class DeviceNFC {
       this.reader.onreading = async (event) => {
         try {
           const records = event.message.records;
-          const decoder = new TextDecoder();
           for (const record of records) {
-            console.log("Record type:  " + record.recordType);
-            console.log("MIME type:    " + record.mediaType);
-            console.log("=== data ===\n" + decoder.decode(record.data));
-            await this.handleScannedNFCData(decoder.decode(record.data)); // Handle scanned NFC data
+            const data = new TextDecoder().decode(record.data);
+            await this.handleScannedNFCData(data); // Handle scanned NFC data
           }
         } catch (error) {
-          nfcerrortext.textContent = "Error while handling scanned NFC data: " + error;
+          throw new Error("Error while handling scanned NFC data: " + error);
         }
       };
 
       this.reader.onerror = (event) => {
-        nfcerrortext.textContent = "Cannot read data from the NFC tag. Try another one?";
+        const paymentStatusElement = document.getElementById("payment-status");
+        paymentStatusElement.textContent = "Card is not detected.";
       };
     } catch (error) {
-      nfcerrortext.textContent = "Error! Scan failed to start: " + error;
+      throw new Error("Error! Scan failed to start: " + error);
     }
   }
 
   async handleScannedNFCData(data) {
-    // Handle the scanned NFC data here
-    const nfcerrortext = document.getElementById("nfcerrortext");
-    nfcerrortext.textContent = "NFC Data: " + data;
+    const paymentStatusElement = document.getElementById("payment-status");
+    paymentStatusElement.textContent = "Payment Successful!";
+    
+    // Reset the payment status after a delay (e.g., 3000 milliseconds = 3 seconds)
+    setTimeout(() => {
+      paymentStatusElement.textContent = "";
+      // Reload the page to restart the site
+      location.reload();
+    }, 4000); // Adjust the delay as needed.
   }
 
   async readNFCData() {
     try {
       await this.init();
+      return new Promise((resolve) => {
+        this.handleScannedNFCData = resolve;
+      });
     } catch (error) {
-      const nfcerrortext = document.getElementById("nfcerrortext");
-      nfcerrortext.textContent = "Error while initializing NFC: " + error;
+      throw new Error("Error while initializing NFC: " + error);
     }
   }
 }
@@ -257,64 +262,15 @@ const nfcDevice = new DeviceNFC();
 const nfcTestButton = document.getElementById("nfc-test-button");
 if (nfcTestButton) {
   nfcTestButton.addEventListener("click", () => {
-    const nfcerrortext = document.getElementById("nfcerrortext");
     nfcerrortext.textContent = 'Reading NFC data...';
-    nfcDevice.readNFCData();
+    nfcDevice.readNFCData().then(data => {
+      nfcerrortext.textContent = 'NFC Data: ' + data;
+    }).catch(error => {
+      nfcerrortext.textContent = 'Error while reading NFC data: ' + error;
+    });
   });
 }
 
-
-
-// // async function processPaymentWithBankAPI(nfcData) {
-// //   // Construct the paymentData object using NFC data or any other necessary information
-// //   const paymentData = {
-// //     nfcData: nfcData,
-// //   };
-
-//   // Clear previous payment status and display loading indicator
-//   const paymentStatusElement = document.getElementById("payment-status");
-//   paymentStatusElement.textContent = "Processing payment...";
-  
-//   try {
-//     const response = await fetch('BANK_API_ENDPOINT', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify(paymentData),
-//     });
-
-//     const responseData = await response.json();
-
-//     if (response.ok) {
-//       console.log('Payment successful:', responseData);
-//       paymentStatusElement.textContent = "Payment Successful!";
-//       // Update UI with success message, add to transaction history, etc.
-//       updateTransactionHistory(paymentData, responseData);
-//     } else {
-//       console.error('Payment failed:', responseData);
-//       paymentStatusElement.textContent = "Payment Failed!";
-//       // Update UI with failure message, provide retry option, etc.
-//       showRetryOption(paymentData);
-//     }
-//   } catch (error) {
-//     console.error('Error processing payment:', error);
-//     paymentStatusElement.textContent = "Error processing payment";
-//     // Update UI with error message, provide retry option, etc.
-//     showRetryOption(paymentData);
-//   }
-// }
-
-// Function to show retry option in case of payment failure or error
-function showRetryOption(paymentData) {
-  // Display a retry button and handle its click event
-  const retryButton = document.getElementById("retry-button");
-  retryButton.style.display = "block";
-  retryButton.addEventListener("click", () => {
-    retryButton.style.display = "none";
-    processPaymentWithBankAPI(paymentData);
-  });
-}
 
 // Function to update transaction history
 function updateTransactionHistory(paymentData, responseData) {
@@ -364,13 +320,6 @@ window.addEventListener("keypress", (event) => {
   
 }
 
-// Function to handle scanned NFC data
-function handleScannedNFCData(scannedData) {
-  // Assuming scannedData contains relevant information (e.g., payment details)
-
-  // Trigger payment process using bank's API
-  processPaymentWithBankAPI(scannedData);
-}
 
 //connects arduino with project
 
