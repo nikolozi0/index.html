@@ -199,7 +199,6 @@ setInterval(() => {
 }, 100);
 
 
-
 const nfcerrortext = document.getElementById("nfcerrortext");
 
 class DeviceNFC {
@@ -224,7 +223,9 @@ class DeviceNFC {
     try {
       await this.init();
       return new Promise((resolve) => {
-        resolve(); // Directly resolve without any value
+        this.reader.onreading = () => {
+          resolve(); // Resolve the promise when NFC scan event occurs
+        };
       });
     } catch (error) {
       throw new Error("Error while initializing NFC: " + error);
@@ -245,6 +246,7 @@ if (nfcTestButton) {
     });
   });
 }
+
 
 
 
