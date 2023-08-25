@@ -224,7 +224,7 @@ class DeviceNFC {
       await this.init();
       return new Promise((resolve) => {
         this.reader.onreading = () => {
-          resolve(); // Resolve the promise when NFC scan event occurs
+          resolve(true); // Resolve the promise when NFC scan event occurs
         };
       });
     } catch (error) {
@@ -239,13 +239,18 @@ const nfcTestButton = document.getElementById("nfc-test-button");
 if (nfcTestButton) {
   nfcTestButton.addEventListener("click", () => {
     nfcerrortext.textContent = 'Scanning NFC card...';
-    nfcDevice.waitForNFCScan().then(() => {
-      nfcerrortext.textContent = 'NFC card has been scanned successfully!';
+    nfcDevice.waitForNFCScan().then(hasScanned => {
+      if (hasScanned) {
+        nfcerrortext.textContent = 'NFC card has been scanned successfully!';
+      } else {
+        nfcerrortext.textContent = 'No NFC card detected.';
+      }
     }).catch(error => {
       nfcerrortext.textContent = 'Error while scanning NFC card: ' + error;
     });
   });
 }
+
 
 
 
