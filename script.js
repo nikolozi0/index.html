@@ -252,10 +252,6 @@ if (nfcTestButton) {
 }
 
 
-
-
-
-
 // Function to update transaction history
 function updateTransactionHistory(paymentData, responseData) {
   // Add the transaction to a transaction history section in the UI
@@ -306,6 +302,26 @@ window.addEventListener("keypress", (event) => {
 
 
 //connects arduino with project
+
+        const requestPermissionButton = document.getElementById('connect-button');
+
+        requestPermissionButton.addEventListener('click', () => {
+        // Perform actions that require the permission
+        // Check if the permission is granted here in JavaScript (not recommended)
+          if (navigator.permissions) {
+              navigator.permissions.query({ name: 'usb' }).then((result) => {
+                  if (result.state === 'granted') {
+                // Permission is granted, proceed with your actions
+                  } else {
+                // Permission is not granted, inform the user
+                      alert('USB permission is required. Please grant it in the app settings.');
+                  }
+              });
+          } else {
+              // Navigator.permissions is not supported, handle it accordingly
+              alert('USB permission cannot be checked. Please check manually in the app settings.');
+          }
+      });
 
         const connectButton = document.getElementById("connect-button");
         let port;
