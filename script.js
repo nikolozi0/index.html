@@ -306,18 +306,26 @@ window.addEventListener("keypress", (event) => {
         const connectButton = document.getElementById("connect-button");
         
         
-        connectButton.addEventListener('click', () => {
-          // Attempt to access a USB device using WebUSB
-          navigator.usb.requestDevice()
-              .then(device => {
-                  // USB device access granted, proceed with your actions
-                  console.log('USB device access granted');
-              })
-              .catch(error => {
-                  // USB device access denied or other errors
-                  console.error('USB device access denied or error:', error);
-              });
-         });
+        connectButton.addEventListener('click', async () => {
+          try {
+            // Request permission to access a USB device
+            const device = await navigator.usb.requestDevice;
+        
+            // Open a connection to the USB device
+            await device.open();
+        
+            // Claim an interface and endpoint for communication
+            await device.claimInterface(INTERFACE_NUMBER);
+        
+            // Perform communication with the Arduino, e.g., sending and receiving data
+            const transferResult = await device.transferOut(ENDPOINT_NUMBER, new Uint8Array([YOUR_DATA_TO_SEND]));
+        
+            // Handle the result and update the output area
+            output.textContent = `Sent ${transferResult.bytesWritten} bytes of data to Arduino.`;
+          } catch (error) {
+            console.error('USB device access denied or error:', error);
+          }
+        });
 
         let port;
         async function connectToSerialPort() {
