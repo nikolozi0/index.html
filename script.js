@@ -328,21 +328,25 @@ window.addEventListener("keypress", (event) => {
         });
 
         let port;
+
         async function connectToSerialPort() {
-          if (!port) {
-            try {
+          try {
+            // Check if the Web Serial API is available
+            if ('serial' in navigator) {
+              // Request permission to access a serial port
               port = await navigator.serial.requestPort();
               await port.open({ baudRate: 9600 });
               console.log("Serial port connected.");
               startReadingData();
               hideConnectButton();
-            } catch (error) {
-              console.error("Error connecting to serial port:", error);
+            } else {
+              console.error("Web Serial API is not available in this browser.");
             }
-          } else {
-            console.log("Serial port is already connected.");
+          } catch (error) {
+            console.error("Error connecting to serial port:", error);
           }
         }
+
         
         async function startReadingData() {
           const reader = port.readable.getReader();
