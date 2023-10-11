@@ -305,25 +305,31 @@ window.addEventListener("keypress", (event) => {
 
 let port = null;
 let reader = null;
+let writer = null;
+let myLooping = null;
 
-async function connectToSerialPort() {
+document.getElementById('connectButton').addEventListener('click', () => {
   if (navigator.serial) {
-    if (!port) {
-      try {
-        port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
-        console.log("Serial port connected.");
-        startReadingData();
-        hideConnectButton();
-      } catch (error) {
-        console.error("Error connecting to serial port:", error);
-      }
-    } else {
-      console.log("Serial port is already connected.");
+    connectSerial();
+  } else {
+    document.getElementById('myDiv01').innerHTML = 'Web Serial API not supported. Switching to Polyfill<br>';
+    usePolyfill();
+  }
+});
+
+async function connectSerial() {
+  if (!port) {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      console.log("Serial port connected.");
+      startReadingData();
+      hideConnectButton();
+    } catch (error) {
+      console.error("Error connecting to serial port:", error);
     }
   } else {
-    // Switch to the polyfill when Web Serial API is not supported
-    usePolyfill();
+    console.log("Serial port is already connected.");
   }
 }
 
@@ -361,48 +367,61 @@ async function stopReadingData() {
   }
 }
 
-function usePolyfill() {
+async function usePolyfill() {
   // Check if the polyfill module is available
   if (typeof yourSerialPolyfill === "function") {
     // Initialize and use the polyfill for serial communication
     const mySerial = yourSerialPolyfill();
 
-    // Your polyfill code here to handle serial communication with the polyfill
-    // For example, request a port, open it, and set up readers and writers
-    mySerial.requestPort()
-      .then((port) => {
-        return port.open({ baudRate: 115200 });
-      })
-      .then((port) => {
-        reader = port.readable.getReader();
-        writer = port.writable.getWriter();
-        const results = port.getInfo();
+    try {
+      port = await mySerial.requestPort();
+      await port.open({ baudRate: 115200 });
 
-        console.log("Web Serial Polyfill is used.");
-        console.log("get info results", results);
-        document.getElementById("myDiv01").innerHTML += "results.usbVendorId: " + results.usbVendorId + "<br>";
-        document.getElementById("myDiv01").innerHTML += "results.usbProductId: " + results.usbProductId + "<br>";
+      reader = port.readable.getReader();
+      writer = port.writable.getWriter();
 
-        // Start looping the serial read. Is there a better way to do this?
-        clearInterval(myLooping);
-        myLooping = setInterval(myRead, 1000);
-      })
-      .catch((error) => {
-        console.error("Error with the polyfill:", error);
-      });
+      const results = port.getInfo();
+
+      console.log("Web Serial Polyfill is used.");
+      console.log("get info results", results);
+      document.getElementById("myDiv01").innerHTML += "results.usbVendorId: " + results.usbVendorId + "<br>";
+      document.getElementById("myDiv01").innerHTML += "results.usbProductId: " + results.usbProductId + "<br>";
+
+      // Start looping the serial read. Is there a better way to do this?
+      clearInterval(myLooping);
+      myLooping = setInterval(myRead, 1000);
+    } catch (error) {
+      console.error("Error with the polyfill:", error);
+    }
   } else {
     console.error("Your serial polyfill module is not available.");
   }
 }
 
-
-// Call connectToSerialPort() when the "Connect" button is clicked
-const connectButton = document.getElementById("connect-button");
-connectButton.addEventListener("click", connectToSerialPort);
+// Call connectSerial() when the "Connect" button is clicked
+const connectButton = document.getElementById("connectButton");
+connectButton.addEventListener("click", connectSerial);
 
 function hideConnectButton() {
   connectButton.style.display = "none";
 }
+
+function updateOutput(data) {
+  const output = document.getElementById("target");
+  output.textContent += data + '\n';
+}
+
+async function myRead() {
+  try {
+    const { value, done } = await reader.read();
+    if (done) return;
+    const data = new TextDecoder().decode(value);
+    updateOutput(data);
+  } catch (error) {
+    console.error("Error reading polyfill data:", error);
+  }
+}
+
 
 // Function to update the output element with received data
 function updateOutput(data) {
