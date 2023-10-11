@@ -303,17 +303,16 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 
-let port = null;
-let reader = null;
-let writer = null;
-let myLooping = null;
+let port;
+let reader;
+let writer;
 
-document.getElementById('connectButton').addEventListener('click', () => {
+document.getElementById('connect-button').addEventListener('click', () => {
   if (navigator.serial) {
     connectSerial();
   } else {
     document.getElementById('myDiv01').innerHTML = 'Web Serial API not supported. Switching to Polyfill<br>';
-    usePolyfill();
+    myPoly();
   }
 });
 
@@ -334,99 +333,77 @@ async function connectSerial() {
 }
 
 async function startReadingData() {
-  if (port && !reader) {
-    reader = port.readable.getReader();
-  }
-
-  if (reader) {
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const data = new TextDecoder().decode(value);
-        updateOutput(data);
-      }
-    } catch (error) {
-      console.error("Error reading serial data:", error);
-    } finally {
-      await stopReadingData();
+  const reader = port.readable.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const data = new TextDecoder().decode(value);
+      output.textContent = data; // Update the output element with the received data
     }
-  }
-}
-
-async function stopReadingData() {
-  if (reader) {
+  } catch (error) {
+    console.error("Error reading serial data:", error);
+  } finally {
     await reader.releaseLock();
-    reader = null;
-  }
-
-  if (port) {
-    await port.close();
+    port.close();
     port = null;
     console.log("Serial port closed.");
   }
 }
 
-async function usePolyfill() {
-  // Check if the polyfill module is available
-  if (typeof yourSerialPolyfill === "function") {
-    // Initialize and use the polyfill for serial communication
-    const mySerial = yourSerialPolyfill();
-
-    try {
-      port = await mySerial.requestPort();
-      await port.open({ baudRate: 115200 });
-
-      reader = port.readable.getReader();
-      writer = port.writable.getWriter();
-
-      const results = port.getInfo();
-
-      console.log("Web Serial Polyfill is used.");
-      console.log("get info results", results);
-      document.getElementById("myDiv01").innerHTML += "results.usbVendorId: " + results.usbVendorId + "<br>";
-      document.getElementById("myDiv01").innerHTML += "results.usbProductId: " + results.usbProductId + "<br>";
-
-      // Start looping the serial read. Is there a better way to do this?
-      clearInterval(myLooping);
-      myLooping = setInterval(myRead, 1000);
-    } catch (error) {
-      console.error("Error with the polyfill:", error);
-    }
-  } else {
-    console.error("Your serial polyfill module is not available.");
-  }
-}
-
-// Call connectSerial() when the "Connect" button is clicked
-const connectButton = document.getElementById("connectButton");
-connectButton.addEventListener("click", connectSerial);
-
 function hideConnectButton() {
+  const connectButton = document.getElementById("connect-button");
   connectButton.style.display = "none";
 }
 
-function updateOutput(data) {
-  const output = document.getElementById("target");
-  output.textContent += data + '\n';
+// Polyfill for Android
+var serial = exports.serial; // You might not need this if it's already defined elsewhere
+let myLooping; // For read setInterval
+let mySerial;
+
+str2ab = function (str) {
+  var buf = new Uint8Array(str.length); // 1 byte for each char
+  for (var i = 0, strLen = str.length; i < strLen; i++) {
+    buf[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+ab2str = function (buf) {
+  return String.fromCharCode.apply(null, buf);
 }
 
 async function myRead() {
-  try {
-    const { value, done } = await reader.read();
-    if (done) return;
-    const data = new TextDecoder().decode(value);
-    updateOutput(data);
-  } catch (error) {
-    console.error("Error reading polyfill data:", error);
-  }
+  reader.read().then(({ value }) => {
+    let receivedText = ab2str(value);
+    document.getElementById('output').textContent = receivedText; // Update the output element with the received data
+  }, error => {
+    console.error('error from read', error);
+    document.getElementById('myDiv01').innerHTML = 'error from read' + error;
+  });
 }
 
+async function myPoly() {
+  mySerial = await serial.requestPort();
 
-// Function to update the output element with received data
-function updateOutput(data) {
-  const output = document.getElementById("output");
-  output.textContent = data;
+  document.getElementById('myDiv01').innerHTML += await '<b>mySerial: </b><br><pre>' + JSON.stringify(mySerial, null, 3) + '</pre><br><br>';
+
+  console.log('mySerial');
+  console.log(mySerial);
+
+  const myOpen = await mySerial.open({ baudRate: 115200 });
+  reader = mySerial.readable.getReader();
+  writer = mySerial.writable.getWriter();
+
+  const results = mySerial.getInfo();
+
+  console.log('get info results', results);
+  document.getElementById('myDiv01').innerHTML += 'results.usbVendorId: ' + results.usbVendorId + '<br>';
+  document.getElementById('myDiv01').innerHTML += 'results.usbProductId: ' + results.usbProductId + '<br>';
+
+  // Start looping the serial read. Is there a better way to do this?
+  clearInterval(myLooping);
+  myLooping = setInterval(myRead, 1000);
 }
 
 
