@@ -303,43 +303,98 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 
-let port;
+let port = null;
+let reader = null;
 
 async function connectToSerialPort() {
-  if (!port) {
-    try {
-      port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 9600 });
-      console.log("Serial port connected.");
-      startReadingData();
-      hideConnectButton();
-    } catch (error) {
-      console.error("Error connecting to serial port:", error);
+  if (navigator.serial) {
+    if (!port) {
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+        console.log("Serial port connected.");
+        startReadingData();
+        hideConnectButton();
+      } catch (error) {
+        console.error("Error connecting to serial port:", error);
+      }
+    } else {
+      console.log("Serial port is already connected.");
     }
   } else {
-    console.log("Serial port is already connected.");
+    // Switch to the polyfill when Web Serial API is not supported
+    usePolyfill();
   }
 }
 
 async function startReadingData() {
-  const reader = port.readable.getReader();
+  if (port && !reader) {
+    reader = port.readable.getReader();
+  }
 
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const data = new TextDecoder().decode(value);
-      updateOutput(data); // Use the updated function to handle the received data
+  if (reader) {
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const data = new TextDecoder().decode(value);
+        updateOutput(data);
+      }
+    } catch (error) {
+      console.error("Error reading serial data:", error);
+    } finally {
+      await stopReadingData();
     }
-  } catch (error) {
-    console.error("Error reading serial data:", error);
-  } finally {
+  }
+}
+
+async function stopReadingData() {
+  if (reader) {
     await reader.releaseLock();
-    port.close();
+    reader = null;
+  }
+
+  if (port) {
+    await port.close();
     port = null;
     console.log("Serial port closed.");
   }
 }
+
+function usePolyfill() {
+  // Check if the polyfill module is available
+  if (typeof yourSerialPolyfill === "function") {
+    // Initialize and use the polyfill for serial communication
+    const mySerial = yourSerialPolyfill();
+
+    // Your polyfill code here to handle serial communication with the polyfill
+    // For example, request a port, open it, and set up readers and writers
+    mySerial.requestPort()
+      .then((port) => {
+        return port.open({ baudRate: 115200 });
+      })
+      .then((port) => {
+        reader = port.readable.getReader();
+        writer = port.writable.getWriter();
+        const results = port.getInfo();
+
+        console.log("Web Serial Polyfill is used.");
+        console.log("get info results", results);
+        document.getElementById("myDiv01").innerHTML += "results.usbVendorId: " + results.usbVendorId + "<br>";
+        document.getElementById("myDiv01").innerHTML += "results.usbProductId: " + results.usbProductId + "<br>";
+
+        // Start looping the serial read. Is there a better way to do this?
+        clearInterval(myLooping);
+        myLooping = setInterval(myRead, 1000);
+      })
+      .catch((error) => {
+        console.error("Error with the polyfill:", error);
+      });
+  } else {
+    console.error("Your serial polyfill module is not available.");
+  }
+}
+
 
 // Call connectToSerialPort() when the "Connect" button is clicked
 const connectButton = document.getElementById("connect-button");
@@ -348,6 +403,13 @@ connectButton.addEventListener("click", connectToSerialPort);
 function hideConnectButton() {
   connectButton.style.display = "none";
 }
+
+// Function to update the output element with received data
+function updateOutput(data) {
+  const output = document.getElementById("output");
+  output.textContent = data;
+}
+
 
 // Function to update the output element with received data
 function updateOutput(data) {
