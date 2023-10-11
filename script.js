@@ -303,79 +303,58 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 
-        const connectButton = document.getElementById("connect-button");
-        
-        
-        connectButton.addEventListener('click', async () => {
-          try {
-            // Request permission to access a USB device
-            const device = await navigator.usb.requestDevice;
-        
-            // Open a connection to the USB device
-            await device.open();
-        
-            // Claim an interface and endpoint for communication
-            await device.claimInterface(INTERFACE_NUMBER);
-        
-            // Perform communication with the Arduino, e.g., sending and receiving data
-            const transferResult = await device.transferOut(ENDPOINT_NUMBER, new Uint8Array([YOUR_DATA_TO_SEND]));
-        
-            // Handle the result and update the output area
-            output.textContent = `Sent ${transferResult.bytesWritten} bytes of data to Arduino.`;
-          } catch (error) {
-            console.error('USB device access denied or error:', error);
-          }
-        });
+let port;
 
-        let port;
+async function connectToSerialPort() {
+  if (!port) {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      console.log("Serial port connected.");
+      startReadingData();
+      hideConnectButton();
+    } catch (error) {
+      console.error("Error connecting to serial port:", error);
+    }
+  } else {
+    console.log("Serial port is already connected.");
+  }
+}
 
-        async function connectToSerialPort() {
-          try {
-            // Check if the Web Serial API is available
-            if ('serial' in navigator) {
-              // Request permission to access a serial port
-              port = await navigator.serial.requestPort();
-              await port.open({ baudRate: 9600 });
-              console.log("Serial port connected.");
-              startReadingData();
-              hideConnectButton();
-            } else {
-              console.error("Web Serial API is not available in this browser.");
-            }
-          } catch (error) {
-            console.error("Error connecting to serial port:", error);
-          }
-        }
+async function startReadingData() {
+  const reader = port.readable.getReader();
 
-        
-        async function startReadingData() {
-          const reader = port.readable.getReader();
-          try {
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-              const data = new TextDecoder().decode(value);
-              output.textContent = data; // Update the output element with the received data
-            }
-          } catch (error) {
-            console.error("Error reading serial data:", error);
-          } finally {
-            await reader.releaseLock();
-            port.close();
-            port = null;
-            console.log("Serial port closed.");
-          }
-        }
-        
-        // Call connectToSerialPort() when the "Connect" button is clicked
-        connectButton.addEventListener("click", connectToSerialPort);
-        
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const data = new TextDecoder().decode(value);
+      updateOutput(data); // Use the updated function to handle the received data
+    }
+  } catch (error) {
+    console.error("Error reading serial data:", error);
+  } finally {
+    await reader.releaseLock();
+    port.close();
+    port = null;
+    console.log("Serial port closed.");
+  }
+}
 
+// Call connectToSerialPort() when the "Connect" button is clicked
+const connectButton = document.getElementById("connect-button");
+connectButton.addEventListener("click", connectToSerialPort);
 
-        function hideConnectButton() {
-          const connectButton = document.getElementById("connect-button");
-          connectButton.style.display = "none";
-        }
+function hideConnectButton() {
+  connectButton.style.display = "none";
+}
+
+// Function to update the output element with received data
+function updateOutput(data) {
+  const output = document.getElementById("output");
+  output.textContent = data;
+}
+
 
 
 function updateTotalPriceAndCartDisplay() {
