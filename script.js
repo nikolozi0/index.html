@@ -384,6 +384,11 @@ async function myRead() {
 }
 
 async function myPoly() {
+  if (!serial) {
+    console.error('Polyfill for Android not available.');
+    return;
+  }
+
   mySerial = await serial.requestPort();
 
   document.getElementById('myDiv01').innerHTML += await '<b>mySerial: </b><br><pre>' + JSON.stringify(mySerial, null, 3) + '</pre><br><br>';
