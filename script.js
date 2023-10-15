@@ -360,6 +360,8 @@ function hideConnectButton() {
 var serial = exports.serial; // You might not need this if it's already defined elsewhere
 let myLooping; // For read setInterval
 let mySerial;
+let myReader;
+let myWriter;
 
 str2ab = function (str) {
   var buf = new Uint8Array(str.length); // 1 byte for each char
@@ -374,7 +376,7 @@ ab2str = function (buf) {
 }
 
 async function myRead() {
-  reader.read().then(({ value }) => {
+  myReader.read().then(({ value }) => {
     let receivedText = ab2str(value);
     document.getElementById('output').textContent = receivedText; // Update the output element with the received data
   }, error => {
@@ -397,8 +399,8 @@ async function myPoly() {
   console.log(mySerial);
 
   const myOpen = await mySerial.open({ baudRate: 115200 });
-  reader = mySerial.readable.getReader();
-  writer = mySerial.writable.getWriter();
+  myReader = mySerial.readable.getReader();
+  myWriter = mySerial.writable.getWriter();
 
   const results = mySerial.getInfo();
 
@@ -409,6 +411,15 @@ async function myPoly() {
   // Start looping the serial read. Is there a better way to do this?
   clearInterval(myLooping);
   myLooping = setInterval(myRead, 1000);
+}
+
+async function mySend(myData2) {
+  myWriter.ready.then(() => {
+    let inputArrayBuffer = str2ab(myData2);
+    const myWritten = myWriter.write(inputArrayBuffer);
+    console.log('myWritten');
+    console.log(myWritten);
+  });
 }
 
 
