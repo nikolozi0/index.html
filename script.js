@@ -302,7 +302,6 @@ window.addEventListener("keypress", (event) => {
 
 
 //connects arduino with project
-
 let port;
 let reader;
 let writer;
@@ -311,7 +310,7 @@ document.getElementById('connect-button').addEventListener('click', () => {
   if (navigator.serial) {
     connectSerial();
   } else {
-    document.getElementById('myDiv01').innerHTML = 'Web Serial API not supported. Switching to Polyfill<br>';
+    console.log("Web Serial API not supported. Switching to Polyfill");
     myPoly();
   }
 });
@@ -325,7 +324,9 @@ async function connectSerial() {
       startReadingData();
       hideConnectButton();
     } catch (error) {
-      console.error("Error connecting to serial port:", error);
+      const errorMessage = "Error connecting to serial port: " + error.message;
+      console.error(errorMessage);
+      document.getElementById('myDiv01').innerHTML = errorMessage;
     }
   } else {
     console.log("Serial port is already connected.");
@@ -333,7 +334,13 @@ async function connectSerial() {
 }
 
 async function startReadingData() {
-  const reader = port.readable.getReader();
+  if (!port) {
+    console.error("Serial port is not connected.");
+    return;
+  }
+
+  reader = port.readable.getReader();
+
   try {
     while (true) {
       const { value, done } = await reader.read();
@@ -342,12 +349,18 @@ async function startReadingData() {
       output.textContent = data; // Update the output element with the received data
     }
   } catch (error) {
-    console.error("Error reading serial data:", error);
+    const errorMessage = "Error reading serial data: " + error.message;
+    console.error(errorMessage);
+    document.getElementById('myDiv01').innerHTML = errorMessage;
   } finally {
-    await reader.releaseLock();
-    port.close();
-    port = null;
-    console.log("Serial port closed.");
+    if (reader) {
+      await reader.releaseLock();
+    }
+    if (port) {
+      port.close();
+      port = null;
+      console.log("Serial port closed.");
+    }
   }
 }
 
