@@ -1,0 +1,17 @@
+{
+    "name": "Smart Cart App",
+    "short_name": "Smart Cart",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#f5f5f5",
+    "theme_color": "#333",
+    "icons": [
+    {
+            "src": "icon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+       }
+    ]
+  }
+  

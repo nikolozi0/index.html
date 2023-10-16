@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Cart Software</title>
-    <script src="https://cdn.jsdelivr.net/npm/web-serial-polyfill@1.0.14/dist/serial.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json" >
+    <link rel="shortcut icon" href="icon.png" type="image/x-icon">
 </head>
 <body>
     <header>
@@ -48,5 +49,9 @@
     <script src="https://apis.google.com/js/api.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="script.js"></script>
+    <script>if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js')
+        }
+    </script>
 </body>
 </html>
