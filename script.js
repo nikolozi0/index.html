@@ -306,41 +306,32 @@ window.addEventListener("keypress", (event) => {
 const connectButton = document.getElementById("connect-button");
 const output = document.getElementById("output");
 
-connectButton.addEventListener('click', () => {
-  if ('usb' in navigator) {
-      // Attempt to access a USB device using WebUSB
-      navigator.usb.requestDevice()
-          .then(device => {
-              // USB device access granted, proceed with your actions
-              console.log('USB device access granted');
-          })
-          .catch(error => {
-              // USB device access denied or other errors
-              console.error('USB device access denied or error:', error);
-          });
-  } else {
-      console.error('WebUSB is not supported in this browser.');
+document.getElementById('connectButton').addEventListener('click', async () => {
+  try {
+      const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234, productId: 0x5678 }] });
+
+      // Open a connection to the USB device.
+      await usbDevice.open();
+
+      // Select a configuration.
+      await usbDevice.selectConfiguration(1);
+
+      // Claim an interface.
+      await usbDevice.claimInterface(0);
+
+      // Send data to the USB device.
+      const dataToSend = new Uint8Array([0x01, 0x02, 0x03]); // Replace with your data.
+      await usbDevice.transferOut(1, dataToSend);
+
+      // Release the interface and close the device.
+      await usbDevice.releaseInterface(0);
+      await usbDevice.close();
+
+      console.log('USB device access and data transfer successful');
+  } catch (error) {
+      console.error('USB device access or data transfer error:', error);
   }
 });
-
-// Function to list connected USB devices
-function listConnectedDevices() {
-  navigator.usb.getDevices()
-      .then(devices => {
-          deviceList.innerHTML = ''; // Clear the list
-          devices.forEach(device => {
-              const listItem = document.createElement('li');
-              listItem.textContent = `Device: ${device.productName || 'Unknown'} - Vendor ID: ${device.vendorId}, Product ID: ${device.productId}`;
-              deviceList.appendChild(listItem);
-          });
-      })
-      .catch(error => {
-          console.error('Error listing devices:', error);
-      });
-}
-
-// Call the function to list connected devices when the page loads
-listConnectedDevices();
 
 let port;
 async function connectToSerialPort() {
