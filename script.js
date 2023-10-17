@@ -308,20 +308,39 @@ const output = document.getElementById("output");
 
 connectButton.addEventListener('click', () => {
   if ('usb' in navigator) {
-    // Attempt to access a USB device using WebUSB
-    navigator.usb.requestDevice()
-        .then(device => {
-            // USB device access granted, proceed with your actions
-            console.log('USB device access granted');
-        })
-        .catch(error => {
-            // USB device access denied or other errors
-            console.error('USB device access denied or error:', error);
-        });
+      // Attempt to access a USB device using WebUSB
+      navigator.usb.requestDevice()
+          .then(device => {
+              // USB device access granted, proceed with your actions
+              console.log('USB device access granted');
+          })
+          .catch(error => {
+              // USB device access denied or other errors
+              console.error('USB device access denied or error:', error);
+          });
   } else {
-    console.error('WebUSB is not supported in this browser.');
+      console.error('WebUSB is not supported in this browser.');
   }
 });
+
+// Function to list connected USB devices
+function listConnectedDevices() {
+  navigator.usb.getDevices()
+      .then(devices => {
+          deviceList.innerHTML = ''; // Clear the list
+          devices.forEach(device => {
+              const listItem = document.createElement('li');
+              listItem.textContent = `Device: ${device.productName || 'Unknown'} - Vendor ID: ${device.vendorId}, Product ID: ${device.productId}`;
+              deviceList.appendChild(listItem);
+          });
+      })
+      .catch(error => {
+          console.error('Error listing devices:', error);
+      });
+}
+
+// Call the function to list connected devices when the page loads
+listConnectedDevices();
 
 let port;
 async function connectToSerialPort() {
