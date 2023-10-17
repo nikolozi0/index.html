@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json" >
     <link rel="shortcut icon" href="icon.png" type="image/x-icon">
+    <meta name="theme-color" content="#0077b6">
 </head>
 <body>
     <header>
@@ -24,7 +25,6 @@
             <button id="nfc-test-button">NFC Test</button>
             <p id="nfcerrortext"></p>
             <div class="weight-display" id="output">Weight: N/A grams</div>
-            <div class="weight-display" id="myDiv01">polly</div>
             <p id="accumulated-Weight" class="hidden"></p>
             <p id="weight-comparison-result" class="hidden"></p>
             <!-- Add an element to display the weight data -->
@@ -46,11 +46,11 @@
 
     </div>
 
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
+    <script src="https://apis.google.com/js/api.js"  loading="lazy"></script>
+    <script async defer src="https://accounts.google.com/gsi/client"  loading="lazy"></script>
     <script src="script.js"></script>
     <script>if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/service-worker.js')
         }
     </script>
 </body>
