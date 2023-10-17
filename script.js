@@ -302,38 +302,29 @@ window.addEventListener("keypress", (event) => {
 
 
 //connects arduino with project
-
 const connectButton = document.getElementById("connect-button");
 const output = document.getElementById("output");
+let port;
 
-document.getElementById('connectButton').addEventListener('click', async () => {
-  try {
+connectButton.addEventListener('click', async () => {
+  if ('usb' in navigator) {
+    // Attempt to access a USB device using WebUSB
+    try {
       const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234, productId: 0x5678 }] });
-
-      // Open a connection to the USB device.
-      await usbDevice.open();
-
-      // Select a configuration.
-      await usbDevice.selectConfiguration(1);
-
-      // Claim an interface.
-      await usbDevice.claimInterface(0);
-
-      // Send data to the USB device.
-      const dataToSend = new Uint8Array([0x01, 0x02, 0x03]); // Replace with your data.
-      await usbDevice.transferOut(1, dataToSend);
-
-      // Release the interface and close the device.
-      await usbDevice.releaseInterface(0);
-      await usbDevice.close();
-
-      console.log('USB device access and data transfer successful');
-  } catch (error) {
-      console.error('USB device access or data transfer error:', error);
+      // Access granted, you can work with the USB device here
+      console.log('USB device access granted');
+    } catch (error) {
+      // USB device access denied or other errors
+      console.error('USB device access denied or error:', error);
+    }
+  } else if ('serial' in navigator) {
+    // Access the serial port if WebUSB is not supported
+    connectToSerialPort();
+  } else {
+    console.error('WebUSB and Serial API not supported in this browser.');
   }
 });
 
-let port;
 async function connectToSerialPort() {
   if (!port) {
     try {
@@ -343,7 +334,7 @@ async function connectToSerialPort() {
       startReadingData();
       hideConnectButton();
     } catch (error) {
-      console.error("Error connecting to serial port:", error);
+      console.error("Error connecting to the serial port:", error);
     }
   } else {
     console.log("Serial port is already connected.");
@@ -369,8 +360,6 @@ async function startReadingData() {
   }
 }
 
-// Call connectToSerialPort() when the "Connect" button is clicked
-connectButton.addEventListener("click", connectToSerialPort);
 
 function hideConnectButton() {
   const connectButton = document.getElementById("connect-button");
