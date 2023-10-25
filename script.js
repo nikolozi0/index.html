@@ -312,6 +312,7 @@ connectButton.addEventListener('click', async () => {
     try {
       const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
       // Access granted, you can work with the USB device here
+      connectToSerialPort();
       console.log('USB device access granted');
     } catch (error) {
       // USB device access denied or other errors
