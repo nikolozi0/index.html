@@ -285,10 +285,10 @@ window.addEventListener("keypress", (event) => {
 
   // Check if the key is a valid numeric digit (for barcode purposes)
   if (/^\d+$/.test(key)) {
-    // If it is a numeric digit, append it to the scanned barcode
+    // If it is a numeric digit append it to the scanned barcode
     scannedBarcode += key;
   } else if (event.key === "Enter") {
-    // If the Enter key is pressed, handle the scanned barcode
+    // If the Enter key is pressed handle the scanned barcode
     handleBarcodeInput(scannedBarcode);
     // Reset the scannedBarcode variable for the next barcode scan
     scannedBarcode = "";
