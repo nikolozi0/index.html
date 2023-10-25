@@ -329,7 +329,10 @@ connectButton.addEventListener('click', async () => {
 async function connectToSerialPort() {
   if (!port) {
     try {
-      port = await navigator.serial.requestPort({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
+      const filters = [
+        { usbVendorId: 0x1A86, usbProductId: 0x7523 }
+      ];
+      port = await navigator.serial.requestPort({ filters });
       await port.open({ baudRate: 9600 });
       console.log("Serial port connected.");
       startReadingData();
@@ -341,6 +344,7 @@ async function connectToSerialPort() {
     console.log("Serial port is already connected.");
   }
 }
+
 
 async function startReadingData() {
   const reader = port.readable.getReader();
