@@ -307,12 +307,16 @@ const output = document.getElementById("output");
 let port;
 
 connectButton.addEventListener('click', async () => {
+  connectToDevice();
+});
+
+async function connectToDevice() {
   if ('usb' in navigator) {
     // Attempt to access a USB device using WebUSB
     try {
       const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
       // Access granted, you can work with the USB device here
-      connectToSerialPort();
+      await connectToUSBDevice(usbDevice);
       console.log('USB device access granted');
     } catch (error) {
       // USB device access denied or other errors
@@ -320,11 +324,36 @@ connectButton.addEventListener('click', async () => {
     }
   } else if ('serial' in navigator) {
     // Access the serial port if WebUSB is not supported
-    connectToSerialPort();
+    await connectToSerialPort();
   } else {
     console.error('WebUSB and Serial API not supported in this browser.');
   }
-});
+}
+
+async function connectToUSBDevice(usbDevice) {
+  if (!port) {
+    try {
+      await usbDevice.open();
+      await usbDevice.selectConfiguration(1); // Adjust the configuration value if needed
+      await usbDevice.claimInterface(0); // Adjust the interface value if needed
+      await usbDevice.controlTransferOut({
+        requestType: 'class',
+        recipient: 'interface',
+        request: 0x22, // Vendor-specific request for serial port
+        value: 0x01, // Should match the request in your device
+        index: 0x00, // Should match the interface index
+      });
+      port = usbDevice;
+      console.log("USB device connected.");
+      startReadingData();
+      hideConnectButton();
+    } catch (error) {
+      console.error("Error connecting to USB device:", error);
+    }
+  } else {
+    console.log("USB device is already connected.");
+  }
+}
 
 async function connectToSerialPort() {
   if (!port) {
@@ -345,7 +374,6 @@ async function connectToSerialPort() {
   }
 }
 
-
 async function startReadingData() {
   const reader = port.readable.getReader();
   try {
@@ -356,12 +384,17 @@ async function startReadingData() {
       output.textContent = data; // Update the output element with the received data
     }
   } catch (error) {
-    console.error("Error reading serial data:", error);
+    console.error("Error reading data:", error);
   } finally {
     await reader.releaseLock();
-    port.close();
+    if ('usb' in navigator) {
+      await port.releaseInterface(0); // Release the USB interface
+      await port.close();
+    } else {
+      port.close();
+    }
     port = null;
-    console.log("Serial port closed.");
+    console.log("Port closed.");
   }
 }
 
