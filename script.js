@@ -192,7 +192,7 @@ setInterval(() => {
     currentDisplayedWeight = currentWeight;
 
     if (currentProduct) {
-      // Trigger weight comparison only if product and weight changed
+      // Trigger weight comparison only if there's a product and weight changed
       compareProductWeight(currentProduct);
     }
   }
@@ -285,10 +285,10 @@ window.addEventListener("keypress", (event) => {
 
   // Check if the key is a valid numeric digit (for barcode purposes)
   if (/^\d+$/.test(key)) {
-    // If it is a numeric digit append it to the scanned barcode
+    // If it is a numeric digit, append it to the scanned barcode
     scannedBarcode += key;
   } else if (event.key === "Enter") {
-    // If the Enter key is pressed handle the scanned barcode
+    // If the Enter key is pressed, handle the scanned barcode
     handleBarcodeInput(scannedBarcode);
     // Reset the scannedBarcode variable for the next barcode scan
     scannedBarcode = "";
@@ -303,100 +303,64 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 const connectButton = document.getElementById("connect-button");
-const output = document.getElementById("output");
-let port;
+      const output = document.getElementById("output");
+      let port;
 
-connectButton.addEventListener('click', async () => {
-  connectToDevice();
-});
-
-async function connectToDevice() {
-  if ('usb' in navigator) {
-    // Attempt to access a USB device using WebUSB
-    try {
-      const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
-      // Access granted, you can work with the USB device here
-      await connectToUSBDevice(usbDevice);
-      console.log('USB device access granted');
-    } catch (error) {
-      // USB device access denied or other errors
-      console.error('USB device access denied or error:', error);
-    }
-  } else if ('serial' in navigator) {
-    // Access the serial port if WebUSB is not supported
-    await connectToSerialPort();
-  } else {
-    console.error('WebUSB and Serial API not supported in this browser.');
-  }
-}
-
-async function connectToUSBDevice(usbDevice) {
-  if (!port) {
-    try {
-      await usbDevice.open();
-      await usbDevice.selectConfiguration(1); // Adjust the configuration value if needed
-      await usbDevice.claimInterface(0); // Adjust the interface value if needed
-      await usbDevice.controlTransferOut({
-        requestType: 'class',
-        recipient: 'interface',
-        request: 0x22, // Vendor-specific request for serial port
-        value: 0x01, // Should match the request in your device
-        index: 0x00, // Should match the interface index
+      connectButton.addEventListener('click', async () => {
+        if ('usb' in navigator) {
+          // Attempt to access a USB device using WebUSB
+          try {
+            const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
+            // Access granted, you can work with the USB device here
+            console.log('USB device access granted');
+            await usbDevice.open();
+            await usbDevice.selectConfiguration(1); // You may need to adjust this based on your Arduino configuration.
+            await usbDevice.claimInterface(2); // You may need to adjust this based on your Arduino configuration.
+            port = usbDevice;
+            startReadingData();
+          } catch (error) {
+            // USB device access denied or other errors
+            console.error('USB device access denied or error:', error);
+          }
+        } else if ('serial' in navigator) {
+          // Access the serial port if WebUSB is not supported
+          connectToSerialPort();
+        } else {
+          console.error('WebUSB and Serial API not supported in this browser.');
+        }
       });
-      port = usbDevice;
-      console.log("USB device connected.");
-      startReadingData();
-      hideConnectButton();
-    } catch (error) {
-      console.error("Error connecting to USB device:", error);
-    }
-  } else {
-    console.log("USB device is already connected.");
-  }
-}
 
-async function connectToSerialPort() {
-  if (!port) {
-    try {
-      const filters = [
-        { usbVendorId: 0x1A86, usbProductId: 0x7523 }
-      ];
-      port = await navigator.serial.requestPort({ filters });
-      await port.open({ baudRate: 9600 });
-      console.log("Serial port connected.");
-      startReadingData();
-      hideConnectButton();
-    } catch (error) {
-      console.error("Error connecting to the serial port:", error);
-    }
-  } else {
-    console.log("Serial port is already connected.");
-  }
-}
+      async function connectToSerialPort() {
+        if (!port) {
+          try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
+            console.log("Serial port connected.");
+            startReadingData();
+            hideConnectButton();
+          } catch (error) {
+            console.error("Error connecting to the serial port:", error);
+          }
+        } else {
+          console.log("Serial port is already connected.");
+        }
+      }
 
-async function startReadingData() {
-  const reader = port.readable.getReader();
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const data = new TextDecoder().decode(value);
-      output.textContent = data; // Update the output element with the received data
-    }
-  } catch (error) {
-    console.error("Error reading data:", error);
-  } finally {
-    await reader.releaseLock();
-    if ('usb' in navigator) {
-      await port.releaseInterface(0); // Release the USB interface
-      await port.close();
-    } else {
-      port.close();
-    }
-    port = null;
-    console.log("Port closed.");
-  }
-}
+      async function startReadingData() {
+        try {
+          while (true) {
+            const data = await port.transferIn(2, 64); // You may need to adjust the endpoint and packet size based on your Arduino configuration.
+            const text = new TextDecoder().decode(data.data);
+            output.textContent = text;
+          }
+        } catch (error) {
+          console.error("Error reading data:", error);
+        }
+      }
+
+      function hideConnectButton() {
+        connectButton.style.display = 'none';
+      }
 
 
 function hideConnectButton() {
