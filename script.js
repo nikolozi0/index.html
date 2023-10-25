@@ -192,7 +192,7 @@ setInterval(() => {
     currentDisplayedWeight = currentWeight;
 
     if (currentProduct) {
-      // Trigger weight comparison only if there's a product and weight changed
+      // Trigger weight comparison only if product and weight changed
       compareProductWeight(currentProduct);
     }
   }
