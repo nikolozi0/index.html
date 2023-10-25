@@ -310,7 +310,7 @@ connectButton.addEventListener('click', async () => {
   if ('usb' in navigator) {
     // Attempt to access a USB device using WebUSB
     try {
-      const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234, productId: 0x5678 }] });
+      const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
       // Access granted, you can work with the USB device here
       console.log('USB device access granted');
     } catch (error) {
