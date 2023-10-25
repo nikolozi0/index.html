@@ -329,7 +329,7 @@ connectButton.addEventListener('click', async () => {
 async function connectToSerialPort() {
   if (!port) {
     try {
-      port = await navigator.serial.requestPort();
+      port = await navigator.serial.requestPort({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
       await port.open({ baudRate: 9600 });
       console.log("Serial port connected.");
       startReadingData();
