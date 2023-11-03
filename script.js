@@ -427,7 +427,7 @@ function hideConnectButton() {
 // Function to update the output element with received data
 function updateOutput(data) {
   const output = document.getElementById("output");
-  output.textContent = data;
+  output.textContent = usbData;
 }
 
 
