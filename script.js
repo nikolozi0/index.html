@@ -308,90 +308,97 @@ const output = document.getElementById("output");
 let device, port;
 
 async function connect() {
-  try {
-    // Attempt to access a USB device using WebUSB
-    device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
-    console.log('USB device access granted');
-  } catch (error) {
-    console.error('Error during USB device access:', error);
-    return;
-  }
+  if ('usb' in navigator) {
+    try {
+      // Attempt to access a USB device using WebUSB
+      device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
+      console.log('USB device access granted');
+    } catch (error) {
+      console.error('Error during USB device access:', error);
+      return;
+    }
 
-  try {
-    await device.open();
-    console.log('USB device opened');
-  } catch (error) {
-    console.error('Error during USB device open:', error);
-    return;
-  }
+    try {
+      await device.open();
+      console.log('USB device opened');
+    } catch (error) {
+      console.error('Error during USB device open:', error);
+      return;
+    }
 
-  try {
-    await device.selectConfiguration(1); // Select configuration #1 for the device.
-    console.log('USB device configuration selected');
-  } catch (error) {
-    console.error('Error during USB device configuration selection:', error);
-    return;
-  }
+    try {
+      await device.selectConfiguration(1); // Select configuration #1 for the device.
+      console.log('USB device configuration selected');
+    } catch (error) {
+      console.error('Error during USB device configuration selection:', error);
+      return;
+    }
 
-  try {
-    await device.claimInterface(0); // Request exclusive control over interface #0.
-    console.log('USB device interface claimed');
-  } catch (error) {
-    console.error('Error during USB device interface claim:', error);
-    return;
-  }
+    try {
+      await device.claimInterface(0); // Request exclusive control over interface #0.
+      console.log('USB device interface claimed');
+    } catch (error) {
+      console.error('Error during USB device interface claim:', error);
+      return;
+    }
 
-  try {
-    // Attempt to access a serial port using the Serial API
-    port = await navigator.serial.requestPort();
-    console.log("Serial port access granted");
-  } catch (error) {
-    console.error('Error during serial port access:', error);
-    return;
-  }
+    // Start reading data from the USB device using WebUSB
+    startReadingData();
+  } else {
+    try {
+      // Attempt to access a serial port using the Serial API
+      port = await navigator.serial.requestPort();
+      console.log("Serial port access granted");
+    } catch (error) {
+      console.error('Error during serial port access:', error);
+      return;
+    }
 
-  try {
-    await port.open({ baudRate: 9600 });
-    console.log("Serial port opened");
-  } catch (error) {
-    console.error("Error during serial port open:", error);
-    return;
-  }
+    try {
+      await port.open({ baudRate: 9600 });
+      console.log("Serial port opened");
+    } catch (error) {
+      console.error("Error during serial port open:", error);
+      return;
+    }
 
-  // Start reading data from both the USB device and the serial port
-  startReadingData();
+    // Start reading data from the serial port using the Serial API
+    startReadingData();
+  }
 }
 
 async function startReadingData() {
-  // Read data from the USB device using WebUSB
-  while (device.opened) {
-    let result;
+  if ('usb' in navigator) {
+    // Read data from the USB device using WebUSB
+    while (device.opened) {
+      let result;
+      try {
+        result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+      } catch (error) {
+        console.error("Error during USB data transfer:", error);
+        return;
+      }
+      const usbData = new TextDecoder().decode(new DataView(result.data.buffer));
+      output.textContent += usbData; // Update the output element with the received data
+    }
+  } else {
+    // Read data from the serial port using the Serial API
+    const reader = port.readable.getReader();
     try {
-      result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const serialData = new TextDecoder().decode(value);
+        output.textContent += serialData; // Update the output element with the received data
+      }
     } catch (error) {
-      console.error("Error during USB data transfer:", error);
-      return;
+      console.error("Error reading serial data:", error);
+    } finally {
+      await reader.releaseLock();
+      port.close();
+      port = null;
+      console.log("Serial port closed.");
     }
-    const usbData = new TextDecoder().decode(new DataView(result.data.buffer));
-    output.textContent += usbData; // Update the output element with the received data
-  }
-
-  // Read data from the serial port using the Serial API
-  const reader = port.readable.getReader();
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const serialData = new TextDecoder().decode(value);
-      output.textContent += serialData; // Update the output element with the received data
-    }
-  } catch (error) {
-    console.error("Error reading serial data:", error);
-  } finally {
-    await reader.releaseLock();
-    port.close();
-    port = null;
-    console.log("Serial port closed.");
   }
 }
 
