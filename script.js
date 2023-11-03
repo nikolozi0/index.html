@@ -311,28 +311,67 @@ async function connect() {
   try {
     // Attempt to access a USB device using WebUSB
     device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
-    await device.open();
-    await device.selectConfiguration(1); // Select configuration #1 for the device.
-    await device.claimInterface(0); // Request exclusive control over interface #0.
     console.log('USB device access granted');
+  } catch (error) {
+    console.error('Error during USB device access:', error);
+    return;
+  }
 
+  try {
+    await device.open();
+    console.log('USB device opened');
+  } catch (error) {
+    console.error('Error during USB device open:', error);
+    return;
+  }
+
+  try {
+    await device.selectConfiguration(1); // Select configuration #1 for the device.
+    console.log('USB device configuration selected');
+  } catch (error) {
+    console.error('Error during USB device configuration selection:', error);
+    return;
+  }
+
+  try {
+    await device.claimInterface(0); // Request exclusive control over interface #0.
+    console.log('USB device interface claimed');
+  } catch (error) {
+    console.error('Error during USB device interface claim:', error);
+    return;
+  }
+
+  try {
     // Attempt to access a serial port using the Serial API
     port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 9600 });
-    console.log("Serial port connected.");
-
-    // Start reading data from both the USB device and the serial port
-    startReadingData();
+    console.log("Serial port access granted");
   } catch (error) {
-    // USB device access denied or other errors
-    console.error('Device access denied or error:', error);
+    console.error('Error during serial port access:', error);
+    return;
   }
+
+  try {
+    await port.open({ baudRate: 9600 });
+    console.log("Serial port opened");
+  } catch (error) {
+    console.error("Error during serial port open:", error);
+    return;
+  }
+
+  // Start reading data from both the USB device and the serial port
+  startReadingData();
 }
 
 async function startReadingData() {
   // Read data from the USB device using WebUSB
   while (device.opened) {
-    const result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+    let result;
+    try {
+      result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+    } catch (error) {
+      console.error("Error during USB data transfer:", error);
+      return;
+    }
     const usbData = new TextDecoder().decode(new DataView(result.data.buffer));
     output.textContent += usbData; // Update the output element with the received data
   }
