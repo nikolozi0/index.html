@@ -303,6 +303,7 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 // Define a global variable to store the data source
+// Define a global variable to store the data source
 let dataSource;
 
 // Get the elements from the HTML document
@@ -313,106 +314,75 @@ const output = document.getElementById("output");
 let device, port;
 
 async function connect() {
-  if ('usb' in navigator) {
-    try {
+  try {
+    if ('usb' in navigator) {
       // Attempt to access a USB device using WebUSB
       device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
       console.log('USB device access granted');
       // Set the data source to WebUSB
       dataSource = 'WebUSB';
-    } catch (error) {
-      console.error('Error during USB device access:', error);
-      return;
-    }
-
-    try {
-      await device.open();
-      console.log('USB device opened');
-    } catch (error) {
-      console.error('Error during USB device open:', error);
-      return;
-    }
-
-    try {
-      await device.selectConfiguration(1); // Select configuration #1 for the device.
-      console.log('USB device configuration selected');
-    } catch (error) {
-      console.error('Error during USB device configuration selection:', error);
-      return;
-    }
-
-    try {
-      await device.claimInterface(0); // Request exclusive control over interface #0.
-      console.log('USB device interface claimed');
-    } catch (error) {
-      console.error('Error during USB device interface claim:', error);
-      return;
-    }
-
-    // Start reading data from the USB device using WebUSB
-    startReadingData();
-  } else {
-    try {
+    } else {
       // Attempt to access a serial port using the Serial API
       port = await navigator.serial.requestPort();
       console.log("Serial port access granted");
       // Set the data source to Serial
       dataSource = 'Serial';
-    } catch (error) {
-      console.error('Error during serial port access:', error);
-      return;
     }
+  } catch (error) {
+    console.error('Error during device access:', error);
+    return;
+  }
 
-    try {
+  try {
+    if (dataSource === 'WebUSB') {
+      await device.open();
+      console.log('USB device opened');
+      await device.selectConfiguration(1); // Select configuration #1 for the device.
+      console.log('USB device configuration selected');
+      await device.claimInterface(0); // Request exclusive control over interface #0.
+      console.log('USB device interface claimed');
+    } else {
       await port.open({ baudRate: 9600 });
       console.log("Serial port opened");
-    } catch (error) {
-      console.error("Error during serial port open:", error);
-      return;
     }
-
-    // Start reading data from the serial port using the Serial API
-    startReadingData();
+  } catch (error) {
+    console.error('Error during device setup:', error);
+    return;
   }
+
+  // Start reading data from the device
+  startReadingData();
 }
 
 async function startReadingData() {
-  if (dataSource === 'WebUSB') {
-    // Read data from the USB device using WebUSB
-    while (device.opened) {
-      let result;
-      try {
-        result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
-      } catch (error) {
-        console.error("Error during USB data transfer:", error);
-        return;
-      }
-      const usbData = new TextDecoder().decode(new DataView(result.data.buffer));
-      output.textContent += usbData; // Update the output element with the received data
-    }
-  } else if (dataSource === 'Serial') {
-    // Read data from the serial port using the Serial API
-    const reader = port.readable.getReader();
-    try {
-      while (true) {
+  try {
+    while (true) {
+      let receivedData = '';
+
+      if (dataSource === 'WebUSB') {
+        const result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+        receivedData = new TextDecoder().decode(new DataView(result.data.buffer));
+      } else if (dataSource === 'Serial') {
+        const reader = port.readable.getReader();
         const { value, done } = await reader.read();
-        if (done) break;
-        const serialData = new TextDecoder().decode(value);
-        output.textContent += serialData; // Update the output element with the received data
+        if (done) {
+          break;
+        }
+        receivedData = new TextDecoder().decode(value);
+        reader.releaseLock();
       }
-    } catch (error) {
-      console.error("Error reading serial data:", error);
-    } finally {
-      await reader.releaseLock();
-      if (port) {
-        await port.close();
-        port = null;
-        console.log("Serial port closed.");
-      }
+
+      output.textContent += receivedData; // Update the output element with the received data
     }
-  } else {
-    // No data source detected
-    console.error("No data source detected. Please connect a USB device or a serial port.");
+  } catch (error) {
+    console.error("Error during data reading:", error);
+  } finally {
+    if (dataSource === 'WebUSB') {
+      await device.close();
+    } else if (dataSource === 'Serial') {
+      await port.close();
+    }
+    console.log("Device closed.");
   }
 }
 
@@ -427,9 +397,8 @@ function hideConnectButton() {
 // Function to update the output element with received data
 function updateOutput(data) {
   const output = document.getElementById("output");
-  output.textContent = usbData;
+  output.textContent = data;
 }
-
 
 
 
