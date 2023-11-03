@@ -305,44 +305,46 @@ window.addEventListener("keypress", (event) => {
 const connectButton = document.getElementById("connect-button");
 const output = document.getElementById("output");
 
-connectButton.addEventListener('click', () => {
-  // Attempt to access a USB device using WebUSB
-  navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }) // Use your vendor ID
-      .then(device => {
-          // USB device access granted, proceed with your actions
-          console.log('USB device access granted');
-      })
-      .catch(error => {
-          // USB device access denied or other errors
-          console.error('USB device access denied or error:', error);
-      });
-});
+let device, port;
 
-let port;
-async function connectToSerialPort() {
-  if (!port) {
-    try {
-      port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 9600 });
-      console.log("Serial port connected.");
-      startReadingData();
-      hideConnectButton();
-    } catch (error) {
-      console.error("Error connecting to serial port:", error);
-    }
-  } else {
-    console.log("Serial port is already connected.");
+async function connect() {
+  try {
+    // Attempt to access a USB device using WebUSB
+    device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
+    await device.open();
+    await device.selectConfiguration(1); // Select configuration #1 for the device.
+    await device.claimInterface(0); // Request exclusive control over interface #0.
+    console.log('USB device access granted');
+
+    // Attempt to access a serial port using the Serial API
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    console.log("Serial port connected.");
+
+    // Start reading data from both the USB device and the serial port
+    startReadingData();
+  } catch (error) {
+    // USB device access denied or other errors
+    console.error('Device access denied or error:', error);
   }
 }
 
 async function startReadingData() {
+  // Read data from the USB device using WebUSB
+  while (device.opened) {
+    const result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
+    const usbData = new TextDecoder().decode(new DataView(result.data.buffer));
+    output.textContent += usbData; // Update the output element with the received data
+  }
+
+  // Read data from the serial port using the Serial API
   const reader = port.readable.getReader();
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const data = new TextDecoder().decode(value);
-      output.textContent = data; // Update the output element with the received data
+      const serialData = new TextDecoder().decode(value);
+      output.textContent += serialData; // Update the output element with the received data
     }
   } catch (error) {
     console.error("Error reading serial data:", error);
@@ -354,10 +356,8 @@ async function startReadingData() {
   }
 }
 
-// Call connectToSerialPort() when the "Connect" button is clicked
-connectButton.addEventListener("click", connectToSerialPort);
-
-
+// Call connect() when the "Connect" button is clicked
+connectButton.addEventListener("click", connect);
 
 
 function hideConnectButton() {
