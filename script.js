@@ -303,64 +303,61 @@ window.addEventListener("keypress", (event) => {
 
 //connects arduino with project
 const connectButton = document.getElementById("connect-button");
-      const output = document.getElementById("output");
-      let port;
+const output = document.getElementById("output");
 
-      connectButton.addEventListener('click', async () => {
-        if ('usb' in navigator) {
-          // Attempt to access a USB device using WebUSB
-          try {
-            const usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86, productId: 0x7523 }] });
-            // Access granted, you can work with the USB device here
-            console.log('USB device access granted');
-            await usbDevice.open();
-            await usbDevice.selectConfiguration(1); // You may need to adjust this based on your Arduino configuration.
-            await usbDevice.claimInterface(2); // You may need to adjust this based on your Arduino configuration.
-            port = usbDevice;
-            startReadingData();
-          } catch (error) {
-            // USB device access denied or other errors
-            console.error('USB device access denied or error:', error);
-          }
-        } else if ('serial' in navigator) {
-          // Access the serial port if WebUSB is not supported
-          connectToSerialPort();
-        } else {
-          console.error('WebUSB and Serial API not supported in this browser.');
-        }
+connectButton.addEventListener('click', () => {
+  // Attempt to access a USB device using WebUSB
+  navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }) // Use your vendor ID
+      .then(device => {
+          // USB device access granted, proceed with your actions
+          console.log('USB device access granted');
+      })
+      .catch(error => {
+          // USB device access denied or other errors
+          console.error('USB device access denied or error:', error);
       });
+});
 
-      async function connectToSerialPort() {
-        if (!port) {
-          try {
-            port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 });
-            console.log("Serial port connected.");
-            startReadingData();
-            hideConnectButton();
-          } catch (error) {
-            console.error("Error connecting to the serial port:", error);
-          }
-        } else {
-          console.log("Serial port is already connected.");
-        }
-      }
+let port;
+async function connectToSerialPort() {
+  if (!port) {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      console.log("Serial port connected.");
+      startReadingData();
+      hideConnectButton();
+    } catch (error) {
+      console.error("Error connecting to serial port:", error);
+    }
+  } else {
+    console.log("Serial port is already connected.");
+  }
+}
 
-      async function startReadingData() {
-        try {
-          while (true) {
-            const data = await port.transferIn(2, 64); // You may need to adjust the endpoint and packet size based on your Arduino configuration.
-            const text = new TextDecoder().decode(data.data);
-            output.textContent = text;
-          }
-        } catch (error) {
-          console.error("Error reading data:", error);
-        }
-      }
+async function startReadingData() {
+  const reader = port.readable.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const data = new TextDecoder().decode(value);
+      output.textContent = data; // Update the output element with the received data
+    }
+  } catch (error) {
+    console.error("Error reading serial data:", error);
+  } finally {
+    await reader.releaseLock();
+    port.close();
+    port = null;
+    console.log("Serial port closed.");
+  }
+}
 
-      function hideConnectButton() {
-        connectButton.style.display = 'none';
-      }
+// Call connectToSerialPort() when the "Connect" button is clicked
+connectButton.addEventListener("click", connectToSerialPort);
+
+
 
 
 function hideConnectButton() {
