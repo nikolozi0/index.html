@@ -338,7 +338,7 @@ async function connect() {
       console.log('USB device opened');
       await device.selectConfiguration(1); // Select configuration #1 for the device.
       console.log('USB device configuration selected');
-      await device.claimInterface(interfaceNumber); // Request exclusive control over interface #0.
+      await device.claimInterface(5); // Request exclusive control over interface #0.
       console.log('USB device interface claimed');
     } else {
       await port.open({ baudRate: 9600 });
