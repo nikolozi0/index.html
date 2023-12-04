@@ -345,7 +345,7 @@ async function connect() {
       console.log("Serial port opened");
     }
   } catch (error) {
-    console.error('Error during device setup:', error , interfaceNumber);
+    console.error('Error during device setup:', error);
     return;
   }
 
