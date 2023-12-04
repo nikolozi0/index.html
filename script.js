@@ -338,8 +338,17 @@ async function connect() {
       console.log('USB device opened');
       await device.selectConfiguration(1); // Select configuration #1 for the device.
       console.log('USB device configuration selected');
-      await device.claimInterface(5); // Request exclusive control over interface #0.
-      console.log('USB device interface claimed');
+      for (const iface of interfaces) {
+        try {
+          await port.claimInterface(iface.interfaceNumber);
+          console.log(`Interface ${iface.interfaceNumber} claimed successfully`);
+          // Start reading data from the device
+          startReadingData();
+          return; // Exit the loop if claiming is successful
+        } catch (claimError) {
+          console.warn(`Failed to claim interface ${iface.interfaceNumber}`, claimError);
+        }
+      }
     } else {
       await port.open({ baudRate: 9600 });
       console.log("Serial port opened");
