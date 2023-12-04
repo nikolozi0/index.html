@@ -301,8 +301,7 @@ window.addEventListener("keypress", (event) => {
 }
 
 
-//connects arduino with project
-// Define a global variable to store the data source
+
 // Define a global variable to store the data source
 let dataSource;
 
@@ -339,14 +338,14 @@ async function connect() {
       console.log('USB device opened');
       await device.selectConfiguration(1); // Select configuration #1 for the device.
       console.log('USB device configuration selected');
-      await device.claimInterface(0); // Request exclusive control over interface #0.
+      await device.claimInterface(interfaceNumber); // Request exclusive control over interface #0.
       console.log('USB device interface claimed');
     } else {
       await port.open({ baudRate: 9600 });
       console.log("Serial port opened");
     }
   } catch (error) {
-    console.error('Error during device setup:', error);
+    console.error('Error during device setup:', error , interfaceNumber);
     return;
   }
 
