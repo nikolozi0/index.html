@@ -332,6 +332,9 @@ async function connect() {
     return;
   }
 
+  const interfaces = device.configuration.interfaces;
+
+
   try {
     if (dataSource === 'WebUSB') {
       await device.open();
