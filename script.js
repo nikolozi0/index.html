@@ -298,9 +298,6 @@ window.addEventListener("keypress", (event) => {
 }
 }
 
-
-
-
 // Define a global variable to store the data source
 let dataSource;
 
