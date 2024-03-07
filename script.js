@@ -336,7 +336,7 @@ async function connect() {
     if (dataSource === 'WebUSB') {
       await device.open();
       console.log('USB device opened');
-      await device.selectConfiguration(1); // Select configuration #1 for the device.
+      await device.selectConfiguration(1); // Select configuration #1 for the device
       console.log('USB device configuration selected');
       for (const iface of interfaces) {
         try {
