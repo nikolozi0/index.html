@@ -180,6 +180,7 @@ function compareProductWeight(product) {
   
 }
 
+
 // Monitor for changes in weight display
 const weightDisplayElement = document.getElementById("output");
 let currentDisplayedWeight = 0;
@@ -295,11 +296,9 @@ window.addEventListener("keypress", (event) => {
   });
   
 }
+}
 
 
-const { JSDOM } = require('jsdom');
-const dom = new JSDOM('<!DOCTYPE html>');
-global.document = dom.window.document;
 
 
 // Define a global variable to store the data source
@@ -452,4 +451,3 @@ function togglePaymentSection() {
 
 // Load Google Sheets API client library and initialize it
 gapi.load("client", initGoogleSheetsAPI);
-
