@@ -266,6 +266,8 @@ function updateTransactionHistory(paymentData, responseData) {
   transactionHistoryElement.appendChild(transactionEntry);
 }
 
+if (typeof document !== 'undefined') {
+  const weightDisplayElement = document.getElementById("output");
 
 // Initialize Google Sheets API
 function initGoogleSheetsAPI() {
@@ -280,19 +282,13 @@ let scannedBarcode = "";
 
 // Event listener to capture barcode input from anywhere on the page
 window.addEventListener("keypress", (event) => {
-  // Get the pressed key as a character
-  const key = String.fromCharCode(event.keyCode || event.which);
-
-  // Check if the key is a valid numeric digit (for barcode purposes)
-  if (/^\d+$/.test(key)) {
-    // If it is a numeric digit, append it to the scanned barcode
-    scannedBarcode += key;
-  } else if (event.key === "Enter") {
-    // If the Enter key is pressed, handle the scanned barcode
-    handleBarcodeInput(scannedBarcode);
-    // Reset the scannedBarcode variable for the next barcode scan
-    scannedBarcode = "";
-  }
+    const key = String.fromCharCode(event.keyCode || event.which);
+    if (/^\d+$/.test(key)) {
+      scannedBarcode += key;
+    } else if (event.key === "Enter") {
+      handleBarcodeInput(scannedBarcode);
+      scannedBarcode = "";
+    }
 });
   }).catch((error) => {
     console.error('Error initializing Google Sheets API:', error);
@@ -300,6 +296,10 @@ window.addEventListener("keypress", (event) => {
   
 }
 
+
+const { JSDOM } = require('jsdom');
+const dom = new JSDOM('<!DOCTYPE html>');
+global.document = dom.window.document;
 
 
 // Define a global variable to store the data source
@@ -452,3 +452,4 @@ function togglePaymentSection() {
 
 // Load Google Sheets API client library and initialize it
 gapi.load("client", initGoogleSheetsAPI);
+
