@@ -295,6 +295,7 @@ window.addEventListener("keypress", (event) => {
   });
   
 }
+}
 
 
 const { JSDOM } = require('jsdom');
