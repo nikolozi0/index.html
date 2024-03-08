@@ -185,6 +185,9 @@ class DeviceNFC {
 
   async init() {
     try {
+      if (!("NDEFReader" in window)) {
+        throw new Error("NFC is not supported by this browser.");
+      }
       this.reader = new NDEFReader();
       await this.reader.scan();
 
@@ -279,66 +282,60 @@ window.addEventListener("keypress", (event) => {
 
 
 
-// Define a global variable to store the data source
-let dataSource;
-
 // Get the elements from the HTML document
 const connectButton = document.getElementById("connect-button");
 const output = document.getElementById("output");
 
 // Declare the variables for the device and the port
-let device, port;
+let port;
 
 async function connect() {
-  // Check if the Web Serial API is supported
   if (!("serial" in navigator)) {
     alert("Web Serial API not supported in this browser.");
     return;
   }
 
   try {
-    // Prompt user to select any serial port.
     port = await navigator.serial.requestPort();
-    // Open the selected serial port with the desired baud rate.
     await port.open({ baudRate: 9600 });
-
     console.log("Serial port opened successfully.");
-    startReadingData(); // Begin reading data once the port is opened.
+    startReadingData();
   } catch (error) {
     console.error('Error during serial device connection:', error);
-    alert('Failed to connect to the device. Please make sure it is connected and try again.');
+    alert('Failed to connect to the device.');
   }
 }
 
 async function startReadingData() {
+  if (!port) {
+    console.log("Serial port is not opened.");
+    return;
+  }
+
+  const textDecoder = new TextDecoderStream();
+  port.readable.pipeTo(textDecoder.writable);
+  const reader = textDecoder.readable.getReader();
+
   try {
     while (true) {
-      let receivedData = '';
-
-      if (dataSource === 'WebUSB') {
-        const result = await device.transferIn(1, 64); // Read 64 bytes from endpoint #1.
-        receivedData = new TextDecoder().decode(new DataView(result.data.buffer));
-      } else if (dataSource === 'Serial') {
-        const reader = port.readable.getReader();
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
-        }
-        receivedData = new TextDecoder().decode(value);
-        reader.releaseLock();
+      const { value, done } = await reader.read();
+      if (done) {
+        console.log("Stream closed or reader canceled.");
+        break;
       }
-
-      output.textContent += receivedData; // Update the output element with the received data
+      updateWeightDisplay(value.trim()); // Update the weight display with the new value
     }
   } catch (error) {
-    console.error("Error during data reading:", error);
+    console.error('Error during data reading:', error);
   } finally {
-    if (dataSource === 'WebUSB') {
-      await device.close();
-    } else if (dataSource === 'Serial') {
-      await port.close();
-    }
-    console.log("Device closed.");
+    reader.releaseLock();
+  }
+}
+
+function updateWeightDisplay(weight) {
+  const weightDisplayElement = document.getElementById("output");
+  if (weightDisplayElement) {
+    weightDisplayElement.textContent = `Weight: ${weight} grams`;
   }
 }
 
