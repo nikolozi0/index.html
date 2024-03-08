@@ -1,7 +1,3 @@
-// // Google Sheets API settings
-// const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; 
-// const API_KEY = "AIzaSyCU7DGoc9M3LDkccUZeFITDc5jBoGqnkA8"; 
-
 // Google Sheets API settings
 const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; 
 
@@ -45,26 +41,26 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
   }
 }
 
-
 // Function to remove a product from the cart and update the cart display
 function removeFromCart(product) {
   if (cartProducts.has(product.barcode)) {
     cartProducts.delete(product.barcode);
-    
   }
   updateTotalPriceAndCartDisplay();
-  updateCartDisplay();
 }
-
 
 // Function to add a product to the cart and update the cart display
 function addToCart(product) {
-  const accumulatedWeight = product.weight ? product.weight : 0;
-  const newProduct = { ...product, quantity: 1, accumulatedWeight };
-  cartProducts.set(newProduct.barcode + Date.now(), newProduct);
+  if (cartProducts.has(product.barcode)) {
+    let existingProduct = cartProducts.get(product.barcode);
+    existingProduct.quantity += 1;
+    existingProduct.accumulatedWeight += product.weight ? product.weight : 0;
+  } else {
+    const newProduct = { ...product, quantity: 1, accumulatedWeight: product.weight ? product.weight : 0 };
+    cartProducts.set(product.barcode, newProduct);
+  }
   updateTotalPriceAndCartDisplay();
 }
-
 
 // Function to calculate the total price of items in the cart
 function calculateTotalPrice() {
@@ -74,8 +70,6 @@ function calculateTotalPrice() {
   });
   return totalPrice;
 }
-
-
 
 // Function to update the cart display
 function updateCartDisplay() {
@@ -92,16 +86,10 @@ function updateCartDisplay() {
     const deleteButton = document.createElement("button");
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
-      cartProducts.forEach((value, key) => {
-        if (value === product) {
-          cartProducts.delete(key);
-        }
-      });
+      cartProducts.delete(product.barcode);
       removeFromCart(product);
       updateTotalPriceAndCartDisplay();
-      compareProductWeight();
     });
-    
 
     li.appendChild(deleteButton);
     cartItems.appendChild(li);
@@ -116,7 +104,6 @@ function calculateAccumulatedWeight() {
   return accumulatedWeight;
 }
 
-
 // Function to handle barcode input
 function handleBarcodeInput(barcode) {
   if (!barcode) {
@@ -126,34 +113,25 @@ function handleBarcodeInput(barcode) {
 
   findProductByBarcodeFromGoogleSheets(barcode).then((product) => {
     if (product) {
-      currentProduct = product; // Store the currently scanned product
       addToCart(product);
-      compareProductWeight(product);
     } else {
       console.log("Product not found for barcode:", barcode);
     }
   });
-  compareProductWeight();
 }
 
 let previousWeight = 0;
 let currentProduct = null; // Define the variable here
 
 // Function to compare the product's weight and display the result
-function compareProductWeight(product) {
-  
-  if (!product || isNaN(product.weight)) {
-    console.log("Product weight is undefined or not a number.");
-    return;
-  }
+function compareProductWeight() {
   
   const currentWeightText = document.getElementById("output").textContent;
   const currentWeight = parseFloat(currentWeightText);
 
   const accumulatedWeight = calculateAccumulatedWeight();
   
- 
-  // Calculate the weight difference between current weight and product weight
+  // Calculate the weight difference between current weight and accumulated weight
   const weightDifference = Math.abs(currentWeight - accumulatedWeight);
 
   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
@@ -161,13 +139,13 @@ function compareProductWeight(product) {
  
 
   if (weightDifference <= 10) {
-    weightComparisonResultElement.textContent = `${product.name} weight is correct.`;
-  } else if (currentWeight > accumulatedWeight) {
-    weightComparisonResultElement.textContent = `${product.weight} current weight is greater that accumulated weight.`;
-  } else if (currentWeight < accumulatedWeight) {
-    weightComparisonResultElement.textContent = `${accumulatedWeight} accumulated weight is greater that current weight.`;
+    weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
+  } else {
+    weightComparisonResultElement.textContent = `Weight discrepancy detected: ${weightDifference} units.`;
   }
-  accumulatedWeightElement.textContent = `Product weight: ${accumulatedWeight.toFixed(2)} lbs`;
+
+  // Update UI elements as necessary
+  accumulatedWeightElement.textContent = `Accumulated weight: ${accumulatedWeight.toFixed(2)} units`;
 
   accumulatedWeightElement.classList.remove("hidden");
   weightComparisonResultElement.classList.remove("hidden"); 
@@ -176,7 +154,6 @@ function compareProductWeight(product) {
     accumulatedWeightElement.classList.add("hidden");
     weightComparisonResultElement.classList.add("hidden");
     }
-  
   
 }
 
@@ -313,56 +290,24 @@ const output = document.getElementById("output");
 let device, port;
 
 async function connect() {
-  try {
-    if ('usb' in navigator) {
-      // Attempt to access a USB device using WebUSB
-      device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] }); // Use your vendor ID
-      console.log('USB device access granted');
-      // Set the data source to WebUSB
-      dataSource = 'WebUSB';
-    } else {
-      // Attempt to access a serial port using the Serial API
-      port = await navigator.serial.requestPort();
-      console.log("Serial port access granted");
-      // Set the data source to Serial
-      dataSource = 'Serial';
-    }
-  } catch (error) {
-    console.error('Error during device access:', error);
+  // Check if the Web Serial API is supported
+  if (!("serial" in navigator)) {
+    alert("Web Serial API not supported in this browser.");
     return;
   }
 
-  const interfaces = device.configuration.interfaces;
-
-
   try {
-    if (dataSource === 'WebUSB') {
-      await device.open();
-      console.log('USB device opened');
-      await device.selectConfiguration(1); // Select configuration #1 for the device
-      console.log('USB device configuration selected');
-      for (const iface of interfaces) {
-        try {
-          await port.claimInterface(iface.interfaceNumber);
-          console.log(`Interface ${iface.interfaceNumber} claimed successfully`);
-          // Start reading data from the device
-          startReadingData();
-          return; // Exit the loop if claiming is successful
-        } catch (claimError) {
-          console.warn(`Failed to claim interface ${iface.interfaceNumber}`, claimError);
-        }
-      }
-    } else {
-      await port.open({ baudRate: 9600 });
-      console.log("Serial port opened");
-    }
-  } catch (error) {
-    console.error('Error during device setup:', error);
-    return;
-  }
+    // Prompt user to select any serial port.
+    port = await navigator.serial.requestPort();
+    // Open the selected serial port with the desired baud rate.
+    await port.open({ baudRate: 9600 });
 
-  // Start reading data from the device
-  startReadingData();
+    console.log("Serial port opened successfully.");
+    startReadingData(); // Begin reading data once the port is opened.
+  } catch (error) {
+    console.error('Error during serial device connection:', error);
+    alert('Failed to connect to the device. Please make sure it is connected and try again.');
+  }
 }
 
 async function startReadingData() {
@@ -405,17 +350,8 @@ function hideConnectButton() {
   connectButton.style.display = "none";
 }
 
-// Function to update the output element with received data
-function updateOutput(data) {
-  const output = document.getElementById("output");
-  output.textContent = data;
-}
-
-
-
 function updateTotalPriceAndCartDisplay() {
   // Calculate the total price
-  compareProductWeight(currentProduct);
   const totalPrice = calculateTotalPrice();
 
   // Update the total price display
