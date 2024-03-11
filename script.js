@@ -307,10 +307,11 @@ async function connectWithWebSerial() {
   }
 
   try {
-    const port = await navigator.serial.requestPort();
+    port = await navigator.serial.requestPort(); // Removed 'const' to update the global 'port'
     await port.open({ baudRate: 9600 }); // Adjust baudRate as needed.
+    
     console.log('Connected using Web Serial API.');
-    // Add additional code here to handle the serial communication.
+    startReadingData(); // Start reading data after successful connection
     return true; // Connection successful.
   } catch (error) {
     console.error('Failed to connect with Web Serial API:', error);
@@ -330,7 +331,8 @@ async function connectWithWebUSB() {
     await device.selectConfiguration(1); // The configuration value might be different for your device.
     await device.claimInterface(0); // The interface number might be different for your device.
     console.log('Connected using WebUSB API.');
-    // Add additional code here to handle the USB communication.
+    port = device; // Assuming 'port' should be assigned the device for consistency
+    startReadingData(); // Start reading data after successful connection
     return true; // Connection successful.
   } catch (error) {
     console.error('Failed to connect with WebUSB API:', error);
