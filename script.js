@@ -290,19 +290,51 @@ const output = document.getElementById("output");
 let port;
 
 async function connect() {
-  if (!("serial" in navigator)) {
-    alert("Web Serial API not supported in this browser.");
-    return;
+  const serialConnected = await connectWithWebSerial();
+  if (!serialConnected) {
+    console.log('Attempting to connect using WebUSB API...');
+    const usbConnected = await connectWithWebUSB();
+    if (!usbConnected) {
+      console.log('Failed to connect using both Web Serial and WebUSB APIs.');
+    }
+  }
+}
+
+async function connectWithWebSerial() {
+  if (!('serial' in navigator)) {
+    console.log('Web Serial API not supported in this browser.');
+    return false; // Web Serial API not supported.
   }
 
   try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 9600 });
-    console.log("Serial port opened successfully.");
-    startReadingData();
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 }); // Adjust baudRate as needed.
+    console.log('Connected using Web Serial API.');
+    // Add additional code here to handle the serial communication.
+    return true; // Connection successful.
   } catch (error) {
-    console.error('Error during serial device connection:', error);
-    alert('Failed to connect to the device.');
+    console.error('Failed to connect with Web Serial API:', error);
+    return false; // Connection failed.
+  }
+}
+
+async function connectWithWebUSB() {
+  if (!('usb' in navigator)) {
+    console.log('WebUSB API not supported in this browser.');
+    return false; // WebUSB API not supported.
+  }
+
+  try {
+    const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] });
+    await device.open();
+    await device.selectConfiguration(1); // The configuration value might be different for your device.
+    await device.claimInterface(0); // The interface number might be different for your device.
+    console.log('Connected using WebUSB API.');
+    // Add additional code here to handle the USB communication.
+    return true; // Connection successful.
+  } catch (error) {
+    console.error('Failed to connect with WebUSB API:', error);
+    return false; // Connection failed.
   }
 }
 
