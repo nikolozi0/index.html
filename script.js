@@ -60,6 +60,7 @@ function addToCart(product) {
     cartProducts.set(product.barcode, newProduct);
   }
   updateTotalPriceAndCartDisplay();
+  compareProductWeight();
 }
 
 // Function to calculate the total price of items in the cart
@@ -311,8 +312,10 @@ async function connectWithWebSerial() {
     await port.open({ baudRate: 9600 }); // Adjust baudRate as needed.
     
     console.log('Connected using Web Serial API.');
+    hideConnectButton()
     startReadingData(); // Start reading data after successful connection
     return true; // Connection successful.
+    hideConnectButton()
   } catch (error) {
     console.error('Failed to connect with Web Serial API:', error);
     return false; // Connection failed.
@@ -332,6 +335,7 @@ async function connectWithWebUSB() {
     await device.claimInterface(0); // The interface number might be different for your device.
     console.log('Connected using WebUSB API.');
     port = device; // Assuming 'port' should be assigned the device for consistency
+    hideConnectButton()
     startReadingData(); // Start reading data after successful connection
     return true; // Connection successful.
   } catch (error) {
