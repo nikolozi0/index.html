@@ -44,22 +44,23 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
 // Function to remove a product from the cart and update the cart display
 function removeFromCart(product) {
   if (cartProducts.has(product.barcode)) {
+    const removedProduct = cartProducts.get(product.barcode);
     cartProducts.delete(product.barcode);
+    const weightDifference = removedProduct.accumulatedWeight;
+    updateTotalPriceAndCartDisplay();
+    updateCartDisplay();
+    const newAccumulatedWeight = calculateAccumulatedWeight();
+    compareProductWeight(newAccumulatedWeight);
   }
-  updateTotalPriceAndCartDisplay();
 }
 
 // Function to add a product to the cart and update the cart display
 function addToCart(product) {
-  if (cartProducts.has(product.barcode)) {
-    let existingProduct = cartProducts.get(product.barcode);
-    existingProduct.quantity += 1;
-    existingProduct.accumulatedWeight += product.weight ? product.weight : 0;
-  } else {
-    const newProduct = { ...product, quantity: 1, accumulatedWeight: product.weight ? product.weight : 0 };
-    cartProducts.set(product.barcode, newProduct);
-  }
+  const newProduct = { ...product, quantity: 1, accumulatedWeight: product.weight ? product.weight : 0 };
+  cartProducts.set(product.barcode + '_' + Date.now(), newProduct); // Append a unique identifier to treat each addition as a new product
+  
   updateTotalPriceAndCartDisplay();
+  updateCartDisplay();
   compareProductWeight();
 }
 
@@ -78,22 +79,36 @@ function updateCartDisplay() {
   cartItems.innerHTML = "";
   cartProducts.forEach((product) => {
     const li = document.createElement("li");
-    li.textContent = `${product.name} - $${product.price} `;
-
-    const imageElement = document.createElement("img");
+   const imageElement = document.createElement("img");
     imageElement.src = product.image;
     li.appendChild(imageElement);
 
+
+    const nameElement = document.createElement("p")
+    nameElement.textContent = `${product.name} - $${product.price} `
+    nameElement.classList.add("price_name");
+    li.appendChild(nameElement);
+    
+
     const deleteButton = document.createElement("button");
+    deleteButton.classList.add("delete_button");
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => {
-      cartProducts.delete(product.barcode);
+      cartProducts.forEach((value, key) => {
+        if (value === product) {
+          cartProducts.delete(key);
+        }
+      });
+
       removeFromCart(product);
       updateTotalPriceAndCartDisplay();
+      updateCartDisplay();
+      compareProductWeight();
     });
 
     li.appendChild(deleteButton);
     cartItems.appendChild(li);
+    
   });
 }
 
@@ -115,20 +130,34 @@ function handleBarcodeInput(barcode) {
   findProductByBarcodeFromGoogleSheets(barcode).then((product) => {
     if (product) {
       addToCart(product);
+      retrieveCurrentWeight().then((currentWeight) => {
+        compareProductWeight(currentWeight);
+      });
     } else {
       console.log("Product not found for barcode:", barcode);
     }
   });
 }
 
+function retrieveCurrentWeight() {
+  return new Promise((resolve) => {
+    // Simulate an asynchronous operation (replace with actual async code)
+    setTimeout(() => {
+      const currentWeight = 100; // Replace with the actual weight retrieval logic
+      resolve(currentWeight);
+    }, 1000); // Simulate a 1-second delay
+  });
+}
+
 let previousWeight = 0;
-let currentProduct = null; // Define the variable here
+let currentWeight = 0; // Define the variable here
 
 // Function to compare the product's weight and display the result
 function compareProductWeight() {
   
   const currentWeightText = document.getElementById("output").textContent;
   const currentWeight = parseFloat(currentWeightText);
+
 
   const accumulatedWeight = calculateAccumulatedWeight();
   
@@ -169,9 +198,9 @@ setInterval(() => {
   if (currentWeight !== currentDisplayedWeight) {
     currentDisplayedWeight = currentWeight;
 
-    if (currentProduct) {
+    if (currentWeight) {
       // Trigger weight comparison only if there's a product and weight changed
-      compareProductWeight(currentProduct);
+      compareProductWeight(currentWeight);
     }
   }
 }, 100);
