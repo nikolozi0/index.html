@@ -277,8 +277,7 @@ const nfcDevice = {
 };
 
 function nfcDecoder(message) {
-  // Implement your logic to decode the NFC message here
-  // Return the decoded message as a string
+  
   return message.data.map((record) =>
     String.fromCharCode.apply(null, record.data)
   ).join('');
