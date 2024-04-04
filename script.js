@@ -247,46 +247,74 @@ class DeviceNFC {
 }
 
 const nfcDevice = {
-  watchEnabled: false,
+  serialPort: null,
   connect: async function() {
-    if (!('NDEFReader' in window)) {
-      nfcerrortext.textContent = 'Web NFC API is not supported in this browser.';
+    try {
+      // Request access to the serial port
+      const port = await navigator.serial.requestPort();
+
+      // Connect to the serial port
+      await port.open({ baudRate: 115200 }); // Change the baud rate to match Arduino
+      this.serialPort = port;
+
+      const reader = port.readable.getReader();
+      const writer = port.writable.getWriter();
+
+      console.log('Serial port opened');
+
+      // Handle incoming data from the serial port
+      reader.read().then(function processData({ done, value }) {
+        if (done) {
+          console.log('Serial port disconnected');
+          return;
+        }
+
+        const message = new TextDecoder().decode(value);
+        if (message.includes('noTag')) {
+          nfcerrortext.textContent = 'No NFC tag detected.';
+        } else if (message.includes('System initialized')) {
+          // Handle the "System initialized" message
+          console.log('System initialized');
+        } else {
+          nfcerrortext.textContent = `NFC tag ID: ${message}`;
+        }
+
+        reader.read().then(processData);
+      });
+
+      // Handle errors
+      port.ondisconnect = () => {
+        console.log('Serial port disconnected');
+      };
+
+      port.onerror = (error) => {
+        console.error('Serial port error:', error);
+        nfcerrortext.textContent = `Error: ${error}`;
+      };
+
+      this.writer = writer;
+    } catch (error) {
+      console.error('Error connecting to serial port:', error);
+      nfcerrortext.textContent = `Error: ${error}`;
+    }
+  },
+  waitForNFCScan: function() {
+    if (!this.serialPort || !this.writer) {
+      nfcerrortext.textContent = 'Serial port not connected.';
       return;
     }
 
-    try {
-      const ndef = new NDEFReader();
-      await ndef.scan();
-
-      ndef.addEventListener('reading', () => {
-        nfcerrortext.textContent = 'Scanning NFC tag...';
-      });
-
-      ndef.addEventListener('readingerror', (event) => {
-        nfcerrortext.textContent = `Error while scanning NFC tag: ${event.error}`;
-      });
-
-      ndef.addEventListener('reading', (event) => {
-        const message = nfcDecoder(event.message);
-        nfcerrortext.textContent = `NFC tag read: ${message}`;
-      });
-    } catch (error) {
-      nfcerrortext.textContent = `Error connecting to NFC device: ${error}`;
-    }
+    const data = new TextEncoder().encode('scanNFC\n');
+    this.writer.write(data);
   },
 };
-
-function nfcDecoder(message) {
-  
-  return message.data.map((record) =>
-    String.fromCharCode.apply(null, record.data)
-  ).join('');
-}
 
 const nfcTestButton = document.getElementById('nfc-test-button');
 if (nfcTestButton) {
   nfcTestButton.addEventListener('click', () => {
+    nfcerrortext.textContent = 'Scanning NFC tag...';
     nfcDevice.connect();
+    nfcDevice.waitForNFCScan();
   });
 }
 

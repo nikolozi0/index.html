@@ -150,7 +150,6 @@ button:hover, .payment-button:hover, #retry-button:hover {
     background-color: #0056b3;
 }
 
-/* Style adjustments for form elements */
 input[type="text"], input[type="number"], select {
     width: 100%;
     padding: 10px;
