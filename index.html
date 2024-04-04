@@ -6,11 +6,18 @@
     <title>Smart Cart Software</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json" >
-    <link rel="shortcut icon" href="icon.png" type="image/x-icon">
+    <link rel="shortcut icon" href="img/icon.png" type="image/x-icon">
     <meta name="theme-color" content="#0077b6">
 </head>
 <header>
   <h1>Smart Cart Software</h1>
+  <div class="language-select-container">
+      <img src="img/globe.svg" alt="Globe Icon" class="globe-icon">
+      <select id="language-select" onchange="changeLanguage()">
+          <option value="en">English</option>
+          <option value="ka">ქართული</option>
+      </select>
+  </div>
 </header>
 
 <body>

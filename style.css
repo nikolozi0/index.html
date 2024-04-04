@@ -207,22 +207,20 @@ input[type="text"], input[type="number"], select {
     }
 
     .grid {
-        grid-template-columns: repeat(3, 1fr); /* Three items per row on larger screens */
+        grid-template-columns: repeat(3, 1fr); 
     }
 }
 
-/* Extra large devices (large laptops and desktops, 1200px and up) */
 @media only screen and (min-width: 1201px) {
     header h1 {
         font-size: 2.5em;
     }
 
     .grid {
-        grid-template-columns: repeat(4, 1fr); /* Four items per row on extra large screens */
+        grid-template-columns: repeat(4, 1fr); 
     }
 }
 
-/* Style for the invisible input field */
 .invisible-input {
     position: absolute;
     top: 0;
@@ -233,7 +231,6 @@ input[type="text"], input[type="number"], select {
     pointer-events: none;
 }
 
-/* Add a class to hide elements */
 .hidden {
     display: none;
 }
@@ -241,7 +238,6 @@ input[type="text"], input[type="number"], select {
 
 
 
-/* Style for the payment section */
 #payment-section {
     border: 1px solid #ccc;
     padding: 20px;
@@ -292,4 +288,21 @@ input[type="text"], input[type="number"], select {
 #weight-comparison-result {
     font-weight: bold;
     margin-top: 10px;
+}
+
+.language-select-container {
+    position: relative;
+}
+
+.globe-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px; 
+    height: auto;
+}
+
+#language-select {
+    padding-left: 30px; 
 }

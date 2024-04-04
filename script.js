@@ -77,6 +77,9 @@ function calculateTotalPrice() {
 function updateCartDisplay() {
   const cartItems = document.getElementById("cart-items");
   cartItems.innerHTML = "";
+  const selectedLanguage = document.getElementById("language-select").value;
+
+
   cartProducts.forEach((product) => {
     const li = document.createElement("li");
    const imageElement = document.createElement("img");
@@ -85,14 +88,14 @@ function updateCartDisplay() {
 
 
     const nameElement = document.createElement("p")
-    nameElement.textContent = `${product.name} - $${product.price} `
+    nameElement.textContent = `${product.name}${translations[selectedLanguage].priceName}${product.price}`;
     nameElement.classList.add("price_name");
     li.appendChild(nameElement);
     
 
     const deleteButton = document.createElement("button");
     deleteButton.classList.add("delete_button");
-    deleteButton.textContent = "Delete";
+    deleteButton.textContent = translations[selectedLanguage].deleteButton;
     deleteButton.addEventListener("click", () => {
       cartProducts.forEach((value, key) => {
         if (value === product) {
@@ -160,12 +163,12 @@ function compareProductWeight() {
 
 
   const accumulatedWeight = calculateAccumulatedWeight();
-  
-  // Calculate the weight difference between current weight and accumulated weight
   const weightDifference = Math.abs(currentWeight - accumulatedWeight);
 
   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+  const selectedLanguage = document.getElementById("language-select").value;
+
  
 
   if (weightDifference <= 10) {
@@ -175,7 +178,7 @@ function compareProductWeight() {
   }
 
   // Update UI elements as necessary
-  accumulatedWeightElement.textContent = `Accumulated weight: ${accumulatedWeight.toFixed(2)} units`;
+  accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(2)} units`;
 
   accumulatedWeightElement.classList.remove("hidden");
   weightComparisonResultElement.classList.remove("hidden"); 
@@ -243,21 +246,48 @@ class DeviceNFC {
   }
 }
 
-const nfcDevice = new DeviceNFC();
+const nfcDevice = {
+  watchEnabled: false,
+  connect: async function() {
+    if (!('NDEFReader' in window)) {
+      nfcerrortext.textContent = 'Web NFC API is not supported in this browser.';
+      return;
+    }
 
-const nfcTestButton = document.getElementById("nfc-test-button");
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan();
+
+      ndef.addEventListener('reading', () => {
+        nfcerrortext.textContent = 'Scanning NFC tag...';
+      });
+
+      ndef.addEventListener('readingerror', (event) => {
+        nfcerrortext.textContent = `Error while scanning NFC tag: ${event.error}`;
+      });
+
+      ndef.addEventListener('reading', (event) => {
+        const message = nfcDecoder(event.message);
+        nfcerrortext.textContent = `NFC tag read: ${message}`;
+      });
+    } catch (error) {
+      nfcerrortext.textContent = `Error connecting to NFC device: ${error}`;
+    }
+  },
+};
+
+function nfcDecoder(message) {
+  // Implement your logic to decode the NFC message here
+  // Return the decoded message as a string
+  return message.data.map((record) =>
+    String.fromCharCode.apply(null, record.data)
+  ).join('');
+}
+
+const nfcTestButton = document.getElementById('nfc-test-button');
 if (nfcTestButton) {
-  nfcTestButton.addEventListener("click", () => {
-    nfcerrortext.textContent = 'Scanning NFC card...';
-    nfcDevice.waitForNFCScan().then(hasScanned => {
-      if (hasScanned) {
-        nfcerrortext.textContent = 'NFC card has been scanned successfully!';
-      } else {
-        nfcerrortext.textContent = 'No NFC card detected.';
-      }
-    }).catch(error => {
-      nfcerrortext.textContent = 'Error while scanning NFC card: ' + error;
-    });
+  nfcTestButton.addEventListener('click', () => {
+    nfcDevice.connect();
   });
 }
 
@@ -285,22 +315,15 @@ function initGoogleSheetsAPI() {
   }).then(() => {
     console.log('Google Sheets API initialized.');
 
-    // Initialize a variable to store the barcode digits
 let scannedBarcode = "";
 
-// Event listener to capture barcode input from anywhere on the page
 window.addEventListener("keypress", (event) => {
-  // Get the pressed key as a character
   const key = String.fromCharCode(event.keyCode || event.which);
 
-  // Check if the key is a valid numeric digit (for barcode purposes)
   if (/^\d+$/.test(key)) {
-    // If it is a numeric digit, append it to the scanned barcode
     scannedBarcode += key;
   } else if (event.key === "Enter") {
-    // If the Enter key is pressed, handle the scanned barcode
     handleBarcodeInput(scannedBarcode);
-    // Reset the scannedBarcode variable for the next barcode scan
     scannedBarcode = "";
   }
 });
@@ -401,8 +424,10 @@ async function startReadingData() {
 
 function updateWeightDisplay(weight) {
   const weightDisplayElement = document.getElementById("output");
+  const selectedLanguage = document.getElementById("language-select").value;
+
   if (weightDisplayElement) {
-    weightDisplayElement.textContent = `Weight: ${weight} grams`;
+    weightDisplayElement.textContent = `${translations[selectedLanguage].weight}${weight} grams`;
   }
 }
 
@@ -417,10 +442,12 @@ function hideConnectButton() {
 function updateTotalPriceAndCartDisplay() {
   // Calculate the total price
   const totalPrice = calculateTotalPrice();
+  const selectedLanguage = document.getElementById("language-select").value;
+
 
   // Update the total price display
   const totalPriceElement = document.getElementById("total-price");
-  totalPriceElement.textContent = `Total Price: $${totalPrice.toFixed(2)}`;
+  totalPriceElement.textContent = `${translations[selectedLanguage].totalPrice}${totalPrice.toFixed(2)}`;
 
   // Update the hidden input field with the total price value
   const hiddenTotalPriceInput = document.getElementById("hidden-total-price");
@@ -453,5 +480,73 @@ function togglePaymentSection() {
   }
 }
 
+
+const translations = {
+  en: {
+    headerTitle: "Smart Cart Software",
+    totalPrice: "Total Price: ₾",
+    totalAmount: "Total Amount: ₾",
+    purchaseButton: "Purchase",
+    paymentSection: "Payment Section",
+    transactionHistory: "Transaction History",
+    transactionEntry: "Amount: , Transaction ID: ",
+    accumulatedWeight: "Accumulated weight: ",
+    nfcErrorText: "Scanning NFC card...",
+    nfcSuccessText: "NFC card has been scanned successfully!",
+    nfcFailureText: "No NFC card detected.",
+    deleteButton: "Delete",
+    connectButton: "connect to arduino",
+    priceName: " - ₾"
+  },
+  ka: {
+    headerTitle: "ჭკვიანი ურიკა",
+    totalPrice: "სრული ფასი: ₾",
+    totalAmount: "სრული თანხა: ₾",
+    purchaseButton: "შეძენა",
+    paymentSection: "გადახდის სექცია",
+    transactionHistory: "ტრანზაქციების ისტორია",
+    transactionEntry: "თანხა: , ტრანზაქციის ID: ",
+    connectButton: "სასწორთან დაკავშირება",
+    nfcErrorText: "მიმდინარეობს NFC ბარათის სკანირება...",
+    nfcSuccessText: "NFC ბარათი წარმატებით იქნა სკანირებული!",
+    accumulatedWeight: "დაგროვილი წონა: ",
+    nfcFailureText: "NFC ბარათი არ იქნა აღმოჩენილი.",
+    deleteButton: "წაშლა",
+    priceName: " - ₾"
+  }
+};
+
+function changeLanguage() {
+  const selectedLanguage = document.getElementById("language-select").value;
+  const headerTitle = document.querySelector("header h1");
+  const totalPriceElement = document.getElementById("total-price");
+  const totalAmountElement = document.getElementById("total-amount");
+  const purchaseButton = document.getElementById("purchase-button");
+  const paymentSection = document.getElementById("payment-section");
+  const transactionHistoryElement = document.getElementById("transaction-history");
+  const nfcErrorText = document.getElementById("nfcerrortext");
+  const deleteButtons = document.querySelectorAll(".delete_button");
+  const connectButton = document.getElementById("connect-button");
+
+
+  if (headerTitle && translations[selectedLanguage]) {
+    headerTitle.textContent = translations[selectedLanguage].headerTitle;
+    totalPriceElement.textContent = `${translations[selectedLanguage].totalPrice}`;
+    totalAmountElement.textContent = `${translations[selectedLanguage].totalAmount}`;
+    purchaseButton.textContent = translations[selectedLanguage].purchaseButton;
+    paymentSection.textContent = translations[selectedLanguage].paymentSection;
+    transactionHistoryElement.textContent = translations[selectedLanguage].transactionHistory;
+    nfcErrorText.textContent = translations[selectedLanguage].nfcErrorText;
+    connectButton.textContent = translations[selectedLanguage].connectButton;
+
+    // Update the text content of all delete buttons
+    deleteButtons.forEach(button => {
+      button.textContent = translations[selectedLanguage].deleteButton;
+    });
+  }
+}
+
+// Call this function whenever the language selection changes
+document.getElementById("language-select").addEventListener("change", changeLanguage);
 // Load Google Sheets API client library and initialize it
 gapi.load("client", initGoogleSheetsAPI);
