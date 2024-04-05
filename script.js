@@ -248,15 +248,15 @@ class DeviceNFC {
 
 const nfcDevice = {
   serialPort: null,
-  connect: async function() {
+  connect: async function () {
     try {
       // Request access to the serial port
       const port = await navigator.serial.requestPort();
 
       // Connect to the serial port
-      await port.open({ baudRate: 115200 }); // Change the baud rate to match Arduino
-      this.serialPort = port;
+      await port.open({ baudRate: 115200 });
 
+      this.serialPort = port;
       const reader = port.readable.getReader();
       const writer = port.writable.getWriter();
 
@@ -273,7 +273,6 @@ const nfcDevice = {
         if (message.includes('noTag')) {
           nfcerrortext.textContent = 'No NFC tag detected.';
         } else if (message.includes('System initialized')) {
-          // Handle the "System initialized" message
           console.log('System initialized');
         } else {
           nfcerrortext.textContent = `NFC tag ID: ${message}`;
@@ -286,7 +285,6 @@ const nfcDevice = {
       port.ondisconnect = () => {
         console.log('Serial port disconnected');
       };
-
       port.onerror = (error) => {
         console.error('Serial port error:', error);
         nfcerrortext.textContent = `Error: ${error}`;
@@ -298,7 +296,7 @@ const nfcDevice = {
       nfcerrortext.textContent = `Error: ${error}`;
     }
   },
-  waitForNFCScan: function() {
+  waitForNFCScan: function () {
     if (!this.serialPort || !this.writer) {
       nfcerrortext.textContent = 'Serial port not connected.';
       return;
