@@ -275,9 +275,9 @@ const nfcDevice = {
         } else if (message.includes('System initialized')) {
           console.log('System initialized');
         } else {
-          nfcerrortext.textContent = `NFC tag ID: ${message}`;
+          nfcerrortext.textContent = `დამორჩილებულ არს`;
         }
-
+//NFC tag ID: ${message}
         reader.read().then(processData);
       });
 
