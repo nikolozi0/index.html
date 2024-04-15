@@ -144,11 +144,10 @@ function handleBarcodeInput(barcode) {
 
 function retrieveCurrentWeight() {
   return new Promise((resolve) => {
-    // Simulate an asynchronous operation (replace with actual async code)
     setTimeout(() => {
-      const currentWeight = 100; // Replace with the actual weight retrieval logic
+      const currentWeight = 100; 
       resolve(currentWeight);
-    }, 1000); // Simulate a 1-second delay
+    }, 1000); 
   });
 }
 
@@ -177,7 +176,6 @@ function compareProductWeight() {
     weightComparisonResultElement.textContent = `Weight discrepancy detected: ${weightDifference} units.`;
   }
 
-  // Update UI elements as necessary
   accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(2)} units`;
 
   accumulatedWeightElement.classList.remove("hidden");
@@ -307,13 +305,16 @@ const nfcDevice = {
   },
 };
 
-const nfcTestButton = document.getElementById('nfc-test-button');
-if (nfcTestButton) {
+const nfcTestButton = document.getElementById('nfc-test-button'); 
+const paymentButton = document.getElementById('payment-button');
+if (nfcTestButton || paymentButton) {
   nfcTestButton.addEventListener('click', () => {
     nfcerrortext.textContent = 'Scanning NFC tag...';
     nfcDevice.connect();
     nfcDevice.waitForNFCScan();
   });
+
+  
 }
 
 
@@ -392,7 +393,6 @@ async function connectWithWebSerial() {
     hideConnectButton()
     startReadingData(); // Start reading data after successful connection
     return true; // Connection successful.
-    hideConnectButton()
   } catch (error) {
     console.error('Failed to connect with Web Serial API:', error);
     return false; // Connection failed.
@@ -456,6 +456,22 @@ function updateWeightDisplay(weight) {
   }
 }
 
+// Handle the case where the received data is not a valid number
+function updateWeightDisplay(data) {
+  const weightDisplayElement = document.getElementById("output");
+  const selectedLanguage = document.getElementById("language-select").value;
+
+  if (weightDisplayElement) {
+    const weight = parseFloat(data);
+    if (!isNaN(weight)) {
+      weightDisplayElement.textContent = `${translations[selectedLanguage].weight}${weight} grams`;
+    } else {
+      console.log("Invalid weight data received:", data);
+      
+    }
+  }
+}
+
 // Call connect() when the "Connect" button is clicked
 connectButton.addEventListener("click", connect);
 
@@ -477,7 +493,6 @@ function updateTotalPriceAndCartDisplay() {
   // Update the hidden input field with the total price value
   const hiddenTotalPriceInput = document.getElementById("hidden-total-price");
   hiddenTotalPriceInput.value = totalPrice.toFixed(2);
-  // Update the cart display
   updateCartDisplay();
 
   const totalAmountElement = document.getElementById("total-amount");
@@ -564,7 +579,6 @@ function changeLanguage() {
     nfcErrorText.textContent = translations[selectedLanguage].nfcErrorText;
     connectButton.textContent = translations[selectedLanguage].connectButton;
 
-    // Update the text content of all delete buttons
     deleteButtons.forEach(button => {
       button.textContent = translations[selectedLanguage].deleteButton;
     });
