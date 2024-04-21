@@ -209,6 +209,16 @@ setInterval(() => {
 
 const nfcerrortext = document.getElementById("nfcerrortext");
 
+async function connectNFC() {
+  try {
+    await nfcDevice.connect();
+    console.log('NFC device connected');
+    nfcDevice.startNFCScanning();
+  } catch (error) {
+    console.error('Error connecting to NFC device:', error);
+  }
+}
+
 class DeviceNFC {
   constructor() {
     this.reader = null;
@@ -246,6 +256,8 @@ class DeviceNFC {
 
 const nfcDevice = {
   serialPort: null,
+  reader: null,
+  writer: null,
   connect: async function () {
     try {
       // Request access to the serial port
@@ -255,29 +267,13 @@ const nfcDevice = {
       await port.open({ baudRate: 115200 });
 
       this.serialPort = port;
-      const reader = port.readable.getReader();
-      const writer = port.writable.getWriter();
+      this.reader = port.readable.getReader();
+      this.writer = port.writable.getWriter();
 
       console.log('Serial port opened');
 
       // Handle incoming data from the serial port
-      reader.read().then(function processData({ done, value }) {
-        if (done) {
-          console.log('Serial port disconnected');
-          return;
-        }
-
-        const message = new TextDecoder().decode(value);
-        if (message.includes('noTag')) {
-          nfcerrortext.textContent = 'No NFC tag detected.';
-        } else if (message.includes('System initialized')) {
-          console.log('System initialized');
-        } else {
-          nfcerrortext.textContent = `დამორჩილებულ არს`;
-        }
-//NFC tag ID: ${message}
-        reader.read().then(processData);
-      });
+      this.reader.read().then(this.processData.bind(this));
 
       // Handle errors
       port.ondisconnect = () => {
@@ -288,13 +284,31 @@ const nfcDevice = {
         nfcerrortext.textContent = `Error: ${error}`;
       };
 
-      this.writer = writer;
+      // Start scanning for NFC tags after serial port connection
+      this.startNFCScanning();
     } catch (error) {
       console.error('Error connecting to serial port:', error);
       nfcerrortext.textContent = `Error: ${error}`;
     }
   },
-  waitForNFCScan: function () {
+  processData: function ({ done, value }) {
+    if (done) {
+      console.log('Serial port disconnected');
+      return;
+    }
+
+    const message = new TextDecoder().decode(value);
+    if (message.includes('noTag')) {
+      nfcerrortext.textContent = 'No NFC tag detected.';
+    } else if (message.includes('System initialized')) {
+      console.log('System initialized');
+    } else {
+      nfcerrortext.textContent = `დამორჩილებულ არს`;
+    }
+    //NFC tag ID: ${message}
+    this.reader.read().then(this.processData.bind(this));
+  },
+  startNFCScanning: function () {
     if (!this.serialPort || !this.writer) {
       nfcerrortext.textContent = 'Serial port not connected.';
       return;
@@ -303,9 +317,13 @@ const nfcDevice = {
     const data = new TextEncoder().encode('scanNFC\n');
     this.writer.write(data);
 
+    // Wait for the NFC scan event
     this.reader.onreading = () => {
       console.log('NFC tag scanned');
+      // Handle the scanned NFC tag data here
+      // ...
 
+      // Continue scanning for NFC tags
       this.startNFCScanning();
     };
   },
@@ -383,8 +401,6 @@ async function connect() {
       console.log('Failed to connect using both Web Serial and WebUSB APIs.');
     }
   }
-
-  await nfcDevice.connect();
 
 }
 
