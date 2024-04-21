@@ -147,7 +147,7 @@ function retrieveCurrentWeight() {
     setTimeout(() => {
       const currentWeight = 100; 
       resolve(currentWeight);
-    }, 1000); 
+    }, 10000); 
   });
 }
 
@@ -204,7 +204,7 @@ setInterval(() => {
       compareProductWeight(currentWeight);
     }
   }
-}, 100);
+}, 300);
 
 
 const nfcerrortext = document.getElementById("nfcerrortext");
@@ -302,6 +302,12 @@ const nfcDevice = {
 
     const data = new TextEncoder().encode('scanNFC\n');
     this.writer.write(data);
+
+    this.reader.onreading = () => {
+      console.log('NFC tag scanned');
+
+      this.startNFCScanning();
+    };
   },
 };
 
@@ -377,6 +383,9 @@ async function connect() {
       console.log('Failed to connect using both Web Serial and WebUSB APIs.');
     }
   }
+
+  await nfcDevice.connect();
+
 }
 
 async function connectWithWebSerial() {
