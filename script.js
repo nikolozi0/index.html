@@ -258,7 +258,14 @@ const nfcDevice = {
   serialPort: null,
   reader: null,
   writer: null,
+  isConnected: false, // Add a flag to track the connection state
   connect: async function () {
+    if (this.isConnected) {
+      // Serial port is already connected, start NFC scanning
+      this.startNFCScanning();
+      return;
+    }
+
     try {
       // Request access to the serial port
       const port = await navigator.serial.requestPort();
@@ -269,6 +276,7 @@ const nfcDevice = {
       this.serialPort = port;
       this.reader = port.readable.getReader();
       this.writer = port.writable.getWriter();
+      this.isConnected = true; // Set the connection flag to true
 
       console.log('Serial port opened');
 
@@ -278,6 +286,7 @@ const nfcDevice = {
       // Handle errors
       port.ondisconnect = () => {
         console.log('Serial port disconnected');
+        this.isConnected = false; // Reset the connection flag
       };
       port.onerror = (error) => {
         console.error('Serial port error:', error);
