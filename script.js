@@ -1,4 +1,3 @@
-// Google Sheets API settings
 const SPREADSHEET_ID = "15sfxHgPlCvcYxFRwtx9cAjT_k8Y_4Lp48SSYvIxx4Rs"; 
 
 // Keep track of the products in the cart with a Map
@@ -14,7 +13,7 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
     });
 
     const values = response.result.values;
-    console.log("Google Sheets API Response:", values); // Log the API response
+    console.log("Google Sheets API Response:", values); 
 
     // Find the header row to get the indexes of each field
     const headerRow = values[0];
@@ -34,7 +33,7 @@ async function findProductByBarcodeFromGoogleSheets(barcode) {
         return { barcode, name, price, image, weight };
       }
     }
-    return null; // Barcode not found in the Google Sheets data
+    return null; 
   } catch (error) {
     console.error("Error reading products from Google Sheets:", error);
     return null;
@@ -81,17 +80,46 @@ function updateCartDisplay() {
 
 
   cartProducts.forEach((product) => {
-    const li = document.createElement("li");
-   const imageElement = document.createElement("img");
-    imageElement.src = product.image;
-    li.appendChild(imageElement);
+   const outerDiv = document.createElement("div");
+   outerDiv.classList.add("outerDiv");
+
+   const poductImage = document.createElement("img");
+   poductImage.classList.add("poductImage");
+   poductImage.src = product.image;
+   outerDiv.appendChild(poductImage);
 
 
-    const nameElement = document.createElement("p")
-    nameElement.textContent = `${product.name}${translations[selectedLanguage].priceName}${product.price}`;
+    const nameElement = document.createElement("p");
+    nameElement.textContent = `${product.name}`;
     nameElement.classList.add("price_name");
-    li.appendChild(nameElement);
-    
+    outerDiv.appendChild(nameElement);
+
+    const spanDiv = document.createElement("div");
+    spanDiv.classList.add("spanDiv");
+    outerDiv.appendChild(spanDiv);
+
+    const spanName = document.createElement("span");
+    spanName.classList.add("spanName");
+    if (product.weight >= 1) {
+      spanName.textContent = `${product.weight} kg`;
+    } else {
+      spanName.textContent = `${product.weight} g`;
+    }
+    spanDiv.appendChild(spanName);
+
+    const divUnification = document.createElement("div");
+    divUnification.classList.add("divUnification");
+    outerDiv.appendChild(divUnification);
+
+    const priceDiv = document.createElement("div");
+    priceDiv.classList.add("priceDiv");
+    divUnification.appendChild(priceDiv);
+
+    const spanPrice = document.createElement("span");
+    spanPrice.classList.add("spanPrice");
+    spanPrice.textContent = `${product.price.toFixed(2)} ₾`;
+    priceDiv.appendChild(spanPrice);
+
 
     const deleteButton = document.createElement("button");
     deleteButton.classList.add("delete_button");
@@ -102,6 +130,7 @@ function updateCartDisplay() {
           cartProducts.delete(key);
         }
       });
+    
 
       removeFromCart(product);
       updateTotalPriceAndCartDisplay();
@@ -109,8 +138,8 @@ function updateCartDisplay() {
       compareProductWeight();
     });
 
-    li.appendChild(deleteButton);
-    cartItems.appendChild(li);
+    divUnification.appendChild(deleteButton);
+    cartItems.appendChild(outerDiv);
     
   });
 }
@@ -142,52 +171,52 @@ function handleBarcodeInput(barcode) {
   });
 }
 
-function retrieveCurrentWeight() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const currentWeight = 100; 
-      resolve(currentWeight);
-    }, 10000); 
-  });
-}
-
 let previousWeight = 0;
-let currentWeight = 0; // Define the variable here
+let currentWeight = 0; 
 
 // Function to compare the product's weight and display the result
 function compareProductWeight() {
-  
-  const currentWeightText = document.getElementById("output").textContent;
-  const currentWeight = parseFloat(currentWeightText);
+  const weightDisplayElement = document.getElementById("output");
+  const currentWeightText = weightDisplayElement ? weightDisplayElement.textContent : "";
+  let currentWeight;
 
+  // Check if currentWeightText is a valid number
+  if (!isNaN(parseFloat(currentWeightText))) {
+    currentWeight = parseFloat(currentWeightText);
+  } else {
+    console.log("Invalid weight data received:", currentWeightText);
+    return; 
+  }
 
   const accumulatedWeight = calculateAccumulatedWeight();
   const weightDifference = Math.abs(currentWeight - accumulatedWeight);
+  const roundedWeightDifference = weightDifference.toFixed(3);
+
+
+  console.log("Current Weight:", currentWeight);
+  console.log("Accumulated Weight:", accumulatedWeight);
+  console.log("Weight Difference:", weightDifference);
 
   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
   const selectedLanguage = document.getElementById("language-select").value;
 
- 
-
-  if (weightDifference <= 10) {
+  if (weightDifference <= 0.1) {
     weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
   } else {
-    weightComparisonResultElement.textContent = `Weight discrepancy detected: ${weightDifference} units.`;
+    weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} units.`;
   }
 
-  accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(2)} units`;
+  accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(3)} units`;
 
   accumulatedWeightElement.classList.remove("hidden");
-  weightComparisonResultElement.classList.remove("hidden"); 
+  weightComparisonResultElement.classList.remove("hidden");
 
-  if (accumulatedWeight <= 0){
+  if (accumulatedWeight <= 0) {
     accumulatedWeightElement.classList.add("hidden");
     weightComparisonResultElement.classList.add("hidden");
-    }
-  
+  }
 }
-
 // Monitor for changes in weight display
 const weightDisplayElement = document.getElementById("output");
 let currentDisplayedWeight = 0;
@@ -204,7 +233,7 @@ setInterval(() => {
       compareProductWeight(currentWeight);
     }
   }
-}, 300);
+}, 100);
 
 
 const nfcerrortext = document.getElementById("nfcerrortext");
@@ -245,7 +274,7 @@ class DeviceNFC {
       await this.init();
       return new Promise((resolve) => {
         this.reader.onreading = () => {
-          resolve(true); // Resolve the promise when NFC scan event occurs
+          resolve(true); 
         };
       });
     } catch (error) {
@@ -270,7 +299,6 @@ const nfcDevice = {
       // Request access to the serial port
       const port = await navigator.serial.requestPort();
 
-      // Connect to the serial port
       await port.open({ baudRate: 115200 });
 
       this.serialPort = port;
@@ -329,9 +357,7 @@ const nfcDevice = {
     // Wait for the NFC scan event
     this.reader.onreading = () => {
       console.log('NFC tag scanned');
-      // Handle the scanned NFC tag data here
-      // ...
-
+     
       // Continue scanning for NFC tags
       this.startNFCScanning();
     };
@@ -398,7 +424,6 @@ window.addEventListener("keypress", (event) => {
 const connectButton = document.getElementById("connect-button");
 const output = document.getElementById("output");
 
-// Declare the variables for the device and the port
 let port;
 
 async function connect() {
@@ -420,38 +445,38 @@ async function connectWithWebSerial() {
   }
 
   try {
-    port = await navigator.serial.requestPort(); // Removed 'const' to update the global 'port'
-    await port.open({ baudRate: 9600 }); // Adjust baudRate as needed.
+    port = await navigator.serial.requestPort(); 
+    await port.open({ baudRate: 9600 }); 
     
     console.log('Connected using Web Serial API.');
     hideConnectButton()
-    startReadingData(); // Start reading data after successful connection
-    return true; // Connection successful.
+    startReadingData(); 
+    return true; 
   } catch (error) {
     console.error('Failed to connect with Web Serial API:', error);
-    return false; // Connection failed.
+    return false; 
   }
 }
 
 async function connectWithWebUSB() {
   if (!('usb' in navigator)) {
     console.log('WebUSB API not supported in this browser.');
-    return false; // WebUSB API not supported.
+    return false; 
   }
 
   try {
     const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] });
     await device.open();
-    await device.selectConfiguration(1); // The configuration value might be different for your device.
-    await device.claimInterface(0); // The interface number might be different for your device.
+    await device.selectConfiguration(1); 
+    await device.claimInterface(0); 
     console.log('Connected using WebUSB API.');
-    port = device; // Assuming 'port' should be assigned the device for consistency
+    port = device; 
     hideConnectButton()
-    startReadingData(); // Start reading data after successful connection
-    return true; // Connection successful.
+    startReadingData(); 
+    return true; 
   } catch (error) {
     console.error('Failed to connect with WebUSB API:', error);
-    return false; // Connection failed.
+    return false; 
   }
 }
 
@@ -481,24 +506,31 @@ async function startReadingData() {
   }
 }
 
-function updateWeightDisplay(weight) {
-  const weightDisplayElement = document.getElementById("output");
-  const selectedLanguage = document.getElementById("language-select").value;
-
-  if (weightDisplayElement) {
-    weightDisplayElement.textContent = `${translations[selectedLanguage].weight}${weight} grams`;
-  }
-}
-
-// Handle the case where the received data is not a valid number
 function updateWeightDisplay(data) {
   const weightDisplayElement = document.getElementById("output");
   const selectedLanguage = document.getElementById("language-select").value;
 
   if (weightDisplayElement) {
-    const weight = parseFloat(data);
+    // Remove non-printable and special characters from the data
+    const cleanedData = data.replace(/[^\x20-\x7E]/g, '');
+
+    const weight = parseFloat(cleanedData);
     if (!isNaN(weight)) {
       weightDisplayElement.textContent = `${translations[selectedLanguage].weight}${weight} grams`;
+    } else {
+      console.log("Invalid weight data received:", data);
+    }
+  }
+}
+
+//Handle the case where the received data is not a valid number
+function updateWeightDisplay(data) {
+  const weightDisplayElement = document.getElementById("output");
+
+  if (weightDisplayElement) {
+    const weight = parseFloat(data);
+    if (!isNaN(weight)) {
+      weightDisplayElement.textContent = `${weight} grams`;
     } else {
       console.log("Invalid weight data received:", data);
       
@@ -515,7 +547,6 @@ function hideConnectButton() {
 }
 
 function updateTotalPriceAndCartDisplay() {
-  // Calculate the total price
   const totalPrice = calculateTotalPrice();
   const selectedLanguage = document.getElementById("language-select").value;
 
@@ -619,7 +650,6 @@ function changeLanguage() {
   }
 }
 
-// Call this function whenever the language selection changes
 document.getElementById("language-select").addEventListener("change", changeLanguage);
-// Load Google Sheets API client library and initialize it
+
 gapi.load("client", initGoogleSheetsAPI);
