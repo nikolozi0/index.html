@@ -298,7 +298,7 @@ const nfcDevice = {
     try {
       // Request access to a Bluetooth device
       const device = await navigator.bluetooth.requestDevice({
-        optionalServices: ['0X2901'], // Replace with your service UUID (0x1800)
+        filters: [{ services: ['bluetooth_serial_service'] }],
       });
 
       // Connect to the Bluetooth device
@@ -308,13 +308,11 @@ const nfcDevice = {
       this.isConnected = true;
       console.log('Bluetooth device connected');
 
-      // Get the primary service and characteristic
-      const service = await server.getPrimaryService('0X2901'); // Replace with your service UUID (0x1800)
-      this.characteristic = await service.getCharacteristic('0X1800'); // Replace with your characteristic UUID
-
       // Handle incoming data from the Bluetooth device
-      this.characteristic.startNotifications();
-      this.characteristic.addEventListener('characteristicvaluechanged', this.processData.bind(this));
+      const service = await server.getPrimaryService('bluetooth_serial_service');
+      const characteristic = await service.getCharacteristic('bluetooth_serial_characteristic');
+      characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', this.processData.bind(this));
 
       // Handle disconnection and errors
       device.addEventListener('gattserverdisconnected', () => {
@@ -350,8 +348,10 @@ const nfcDevice = {
     }
 
     // Send a command to start NFC scanning
+    const service = this.server.getPrimaryService('bluetooth_serial_service');
+    const characteristic = service.getCharacteristic('bluetooth_serial_characteristic');
     const data = new TextEncoder().encode('scanNFC\n');
-    this.characteristic.writeValue(data);
+    characteristic.writeValue(data);
   },
 };
 
@@ -615,4 +615,33 @@ const translations = {
 function changeLanguage() {
   const selectedLanguage = document.getElementById("language-select").value;
   const headerTitle = document.querySelector("header h1");
- 
+  const totalPriceElement = document.getElementById("total-price");
+  const totalAmountElement = document.getElementById("total-amount");
+  const purchaseButton = document.getElementById("purchase-button");
+  const paymentSection = document.getElementById("payment-section");
+  const transactionHistoryElement = document.getElementById("transaction-history");
+  const nfcErrorText = document.getElementById("nfcerrortext");
+  const deleteButtons = document.querySelectorAll(".delete_button");
+  const connectButton = document.getElementById("connect-button");
+
+
+  if (headerTitle && translations[selectedLanguage]) {
+    headerTitle.textContent = translations[selectedLanguage].headerTitle;
+    totalPriceElement.textContent = `${translations[selectedLanguage].totalPrice}`;
+    totalAmountElement.textContent = `${translations[selectedLanguage].totalAmount}`;
+    purchaseButton.textContent = translations[selectedLanguage].purchaseButton;
+    paymentSection.textContent = translations[selectedLanguage].paymentSection;
+    transactionHistoryElement.textContent = translations[selectedLanguage].transactionHistory;
+    nfcErrorText.textContent = translations[selectedLanguage].nfcErrorText;
+    connectButton.textContent = translations[selectedLanguage].connectButton;
+
+    deleteButtons.forEach(button => {
+      button.textContent = translations[selectedLanguage].deleteButton;
+    });
+  }
+}
+
+document.getElementById("language-select").addEventListener("change", changeLanguage);
+
+gapi.load("client", initGoogleSheetsAPI);
+
