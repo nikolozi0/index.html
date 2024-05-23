@@ -282,85 +282,75 @@ class DeviceNFC {
     }
   }
 }
-
 const nfcDevice = {
-  serialPort: null,
-  reader: null,
-  writer: null,
-  isConnected: false, // Add a flag to track the connection state
+  device: null,
+  server: null,
+  isConnected: false,
+
   connect: async function () {
     if (this.isConnected) {
-      // Serial port is already connected, start NFC scanning
+      // Bluetooth device is already connected, start NFC scanning
       this.startNFCScanning();
       return;
     }
 
     try {
-      // Request access to the serial port
-      const port = await navigator.serial.requestPort();
+      // Request access to a Bluetooth device
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ['bluetooth_serial_service'] }],
+      });
 
-      await port.open({ baudRate: 115200 });
+      // Connect to the Bluetooth device
+      const server = await device.gatt.connect();
+      this.device = device;
+      this.server = server;
+      this.isConnected = true;
+      console.log('Bluetooth device connected');
 
-      this.serialPort = port;
-      this.reader = port.readable.getReader();
-      this.writer = port.writable.getWriter();
-      this.isConnected = true; // Set the connection flag to true
+      // Handle incoming data from the Bluetooth device
+      const service = await server.getPrimaryService('bluetooth_serial_service');
+      const characteristic = await service.getCharacteristic('bluetooth_serial_characteristic');
+      characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', this.processData.bind(this));
 
-      console.log('Serial port opened');
+      // Handle disconnection and errors
+      device.addEventListener('gattserverdisconnected', () => {
+        console.log('Bluetooth device disconnected');
+        this.isConnected = false;
+      });
 
-      // Handle incoming data from the serial port
-      this.reader.read().then(this.processData.bind(this));
-
-      // Handle errors
-      port.ondisconnect = () => {
-        console.log('Serial port disconnected');
-        this.isConnected = false; // Reset the connection flag
-      };
-      port.onerror = (error) => {
-        console.error('Serial port error:', error);
-        nfcerrortext.textContent = `Error: ${error}`;
-      };
-
-      // Start scanning for NFC tags after serial port connection
+      // Start scanning for NFC tags after Bluetooth connection
       this.startNFCScanning();
     } catch (error) {
-      console.error('Error connecting to serial port:', error);
+      console.error('Error connecting to Bluetooth device:', error);
       nfcerrortext.textContent = `Error: ${error}`;
     }
   },
-  processData: function ({ done, value }) {
-    if (done) {
-      console.log('Serial port disconnected');
-      return;
-    }
 
-    const message = new TextDecoder().decode(value);
+  processData: function (event) {
+    const value = event.target.value;
+    const message = new TextDecoder().decode(value.buffer);
+
     if (message.includes('noTag')) {
       nfcerrortext.textContent = 'No NFC tag detected.';
     } else if (message.includes('System initialized')) {
       console.log('System initialized');
     } else {
-      nfcerrortext.textContent = `დამორჩილებულ არს`;
+      nfcerrortext.textContent = `NFC tag ID: ${message}`;
     }
-    //NFC tag ID: ${message}
-    this.reader.read().then(this.processData.bind(this));
   },
+
   startNFCScanning: function () {
-    if (!this.serialPort || !this.writer) {
-      nfcerrortext.textContent = 'Serial port not connected.';
+    if (!this.device || !this.server) {
+      nfcerrortext.textContent = 'Bluetooth device not connected.';
       return;
     }
 
+    // Send a command to start NFC scanning
+    const service = this.server.getPrimaryService('bluetooth_serial_service');
+    const characteristic = service.getCharacteristic('bluetooth_serial_characteristic');
     const data = new TextEncoder().encode('scanNFC\n');
-    this.writer.write(data);
-
-    // Wait for the NFC scan event
-    this.reader.onreading = () => {
-      console.log('NFC tag scanned');
-     
-      // Continue scanning for NFC tags
-      this.startNFCScanning();
-    };
+    characteristic.writeValue(data);
   },
 };
 
