@@ -236,136 +236,6 @@ setInterval(() => {
 }, 100);
 
 
-const nfcerrortext = document.getElementById("nfcerrortext");
-
-async function connectNFC() {
-  try {
-    await nfcDevice.connect();
-    console.log('NFC device connected');
-    nfcDevice.startNFCScanning();
-  } catch (error) {
-    console.error('Error connecting to NFC device:', error);
-  }
-}
-
-class DeviceNFC {
-  constructor() {
-    this.reader = null;
-  }
-
-  async init() {
-    try {
-      if (!("NDEFReader" in window)) {
-        throw new Error("NFC is not supported by this browser.");
-      }
-      this.reader = new NDEFReader();
-      await this.reader.scan();
-
-      this.reader.onerror = (event) => {
-        throw new Error("Cannot read data from the NFC tag. Try another one?");
-      };
-    } catch (error) {
-      throw new Error("Error! Scan failed to start: " + error);
-    }
-  }
-
-  async waitForNFCScan() {
-    try {
-      await this.init();
-      return new Promise((resolve) => {
-        this.reader.onreading = () => {
-          resolve(true); 
-        };
-      });
-    } catch (error) {
-      throw new Error("Error while initializing NFC: " + error);
-    }
-  }
-}
-const nfcDevice = {
-  device: null,
-  server: null,
-  characteristic: null,
-  isConnected: false,
-
-  connect: async function () {
-    if (this.isConnected) {
-      // Bluetooth device is already connected, start NFC scanning
-      this.startNFCScanning();
-      return;
-    }
-
-    try {
-      // Request access to a Bluetooth device
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['bluetooth_serial_service'] }],
-      });
-
-      // Connect to the Bluetooth device
-      const server = await device.gatt.connect();
-      this.device = device;
-      this.server = server;
-      this.isConnected = true;
-      console.log('Bluetooth device connected');
-
-      // Handle incoming data from the Bluetooth device
-      const service = await server.getPrimaryService('bluetooth_serial_service');
-      const characteristic = await service.getCharacteristic('bluetooth_serial_characteristic');
-      characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', this.processData.bind(this));
-
-      // Handle disconnection and errors
-      device.addEventListener('gattserverdisconnected', () => {
-        console.log('Bluetooth device disconnected');
-        this.isConnected = false;
-      });
-
-      // Start scanning for NFC tags after Bluetooth connection
-      this.startNFCScanning();
-    } catch (error) {
-      console.error('Error connecting to Bluetooth device:', error);
-      nfcerrortext.textContent = `Error: ${error}`;
-    }
-  },
-
-  processData: function (event) {
-    const value = event.target.value;
-    const message = new TextDecoder().decode(value.buffer);
-
-    if (message.includes('noTag')) {
-      nfcerrortext.textContent = 'No NFC tag detected.';
-    } else if (message.includes('System initialized')) {
-      console.log('System initialized');
-    } else {
-      nfcerrortext.textContent = `NFC tag ID: ${message}`;
-    }
-  },
-
-  startNFCScanning: function () {
-    if (!this.device || !this.server || !this.characteristic) {
-      nfcerrortext.textContent = 'Bluetooth device not connected.';
-      return;
-    }
-
-    // Send a command to start NFC scanning
-    const service = this.server.getPrimaryService('bluetooth_serial_service');
-    const characteristic = service.getCharacteristic('bluetooth_serial_characteristic');
-    const data = new TextEncoder().encode('scanNFC\n');
-    characteristic.writeValue(data);
-  },
-};
-
-const nfcTestButton = document.getElementById('nfc-test-button'); 
-const paymentButton = document.getElementById('payment-button');
-if (nfcTestButton || paymentButton) {
-  nfcTestButton.addEventListener('click', () => {
-    nfcerrortext.textContent = 'Scanning NFC tag...';
-    nfcDevice.connect();
-    nfcDevice.waitForNFCScan();
-  });
-
-  
-}
 
 
 // Function to update transaction history
@@ -410,132 +280,110 @@ window.addEventListener("keypress", (event) => {
 }
 
 
-
-// Get the elements from the HTML document
-const connectButton = document.getElementById("connect-button");
+const nfcerrortext = document.getElementById("nfcerrortext");
 const output = document.getElementById("output");
 
-let port;
+let device, server, isConnected = false, nfcTestActive = false;
 
-async function connect() {
-  const serialConnected = await connectWithWebSerial();
-  if (!serialConnected) {
-    console.log('Attempting to connect using WebUSB API...');
-    const usbConnected = await connectWithWebUSB();
-    if (!usbConnected) {
-      console.log('Failed to connect using both Web Serial and WebUSB APIs.');
+// Function to handle data and notifications
+async function handleData(service) {
+  try {
+    const characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+    if (characteristic) {
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        const value = event.target.value;
+        const decoder = new TextDecoder('utf-8');
+        const decodedValue = decoder.decode(value);
+        console.log('Received data:', decodedValue); // Logging received data
+
+        if (decodedValue.startsWith('WEIGHT:')) {
+          const weightValue = parseFloat(decodedValue.substring(7));
+          if (!isNaN(weightValue)) {
+            const output = document.getElementById("output");
+            output.textContent = `Weight: ${weightValue.toFixed(2)} kg`;
+          } else {
+            console.log("Invalid weight data received:", decodedValue);
+          }
+        } else if (decodedValue.startsWith('NFC:')) {
+          if (nfcTestActive) {
+            const nfcTag = decodedValue.substring(4).trim();
+            nfcerrortext.textContent = `NFC Tag: ${nfcTag}`;
+            console.log('Received NFC data:', nfcTag);
+            nfcTestActive = false; // Deactivate NFC test after receiving data
+          } else {
+            console.log('NFC data received but NFC test is not active:', decodedValue);
+          }
+        } else {
+          console.log('Unexpected data received:', decodedValue);
+        }
+      });
+    } else {
+      console.error('Characteristic 0000ffe1-0000-1000-8000-00805f9b34fb not found');
     }
-  }
-
-}
-
-async function connectWithWebSerial() {
-  if (!('serial' in navigator)) {
-    console.log('Web Serial API not supported in this browser.');
-    return false; // Web Serial API not supported.
-  }
-
-  try {
-    port = await navigator.serial.requestPort(); 
-    await port.open({ baudRate: 9600 }); 
-    
-    console.log('Connected using Web Serial API.');
-    hideConnectButton()
-    startReadingData(); 
-    return true; 
   } catch (error) {
-    console.error('Failed to connect with Web Serial API:', error);
-    return false; 
+    console.error('Error handling data:', error);
   }
 }
 
-async function connectWithWebUSB() {
-  if (!('usb' in navigator)) {
-    console.log('WebUSB API not supported in this browser.');
-    return false; 
-  }
-
-  try {
-    const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1A86 }] });
-    await device.open();
-    await device.selectConfiguration(1); 
-    await device.claimInterface(0); 
-    console.log('Connected using WebUSB API.');
-    port = device; 
-    hideConnectButton()
-    startReadingData(); 
-    return true; 
-  } catch (error) {
-    console.error('Failed to connect with WebUSB API:', error);
-    return false; 
-  }
-}
-
-async function startReadingData() {
-  if (!port) {
-    console.log("Serial port is not opened.");
+// Function to connect to Bluetooth and NFC
+async function connectBluetoothAndNFC() {
+  if (!('bluetooth' in navigator)) {
+    console.error('Web Bluetooth API not supported in this browser.');
     return;
   }
 
-  const textDecoder = new TextDecoderStream();
-  port.readable.pipeTo(textDecoder.writable);
-  const reader = textDecoder.readable.getReader();
-
   try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        console.log("Stream closed or reader canceled.");
-        break;
-      }
-      updateWeightDisplay(value.trim()); // Update the weight display with the new value
-    }
+    // Request access to a Bluetooth device
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: ['0000ffe0-0000-1000-8000-00805f9b34fb'] }]
+    });
+
+    // Connect to the Bluetooth device
+    server = await device.gatt.connect();
+    isConnected = true;
+    console.log('Bluetooth device connected');
+
+    // Get the primary service
+    const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+
+    // Handle data and notifications
+    handleData(service);
+
+    // Handle disconnection
+    device.addEventListener('gattserverdisconnected', function() {
+      console.log('Bluetooth device disconnected');
+      isConnected = false;
+    });
+
   } catch (error) {
-    console.error('Error during data reading:', error);
-  } finally {
-    reader.releaseLock();
+    console.error('Error connecting to Bluetooth device:', error);
+    nfcerrortext.textContent = `Error: ${error}`;
   }
 }
 
-function updateWeightDisplay(data) {
-  const weightDisplayElement = document.getElementById("output");
-  const selectedLanguage = document.getElementById("language-select").value;
+// Event listener for the connect button
+const connectButton = document.getElementById("connect-button");
+connectButton.addEventListener("click", async () => {
+  connectButton.disabled = true; // Disable the button to prevent multiple clicks
+  await connectBluetoothAndNFC();
+  connectButton.style.display = "none"; // Hide the button after successful connection
+});
 
-  if (weightDisplayElement) {
-    // Remove non-printable and special characters from the data
-    const cleanedData = data.replace(/[^\x20-\x7E]/g, '');
-
-    const weight = parseFloat(cleanedData);
-    if (!isNaN(weight)) {
-      weightDisplayElement.textContent = `${translations[selectedLanguage].weight}${weight} grams`;
+// Event listener for the NFC test button
+const nfcTestButton = document.getElementById('nfc-test-button');
+if (nfcTestButton) {
+  nfcTestButton.addEventListener('click', () => {
+    if (isConnected) {
+      nfcTestActive = true;
+      nfcerrortext.textContent = 'Scanning NFC tag...';
+      console.log('NFC test activated');
     } else {
-      console.log("Invalid weight data received:", data);
+      console.log('Bluetooth device is not connected.');
     }
-  }
+  });
 }
 
-//Handle the case where the received data is not a valid number
-function updateWeightDisplay(data) {
-  const weightDisplayElement = document.getElementById("output");
-
-  if (weightDisplayElement) {
-    const weight = parseFloat(data);
-    if (!isNaN(weight)) {
-      weightDisplayElement.textContent = `${weight} grams`;
-    } else {
-      console.log("Invalid weight data received:", data);
-      
-    }
-  }
-}
-
-// Call connect() when the "Connect" button is clicked
-connectButton.addEventListener("click", connect);
-
-function hideConnectButton() {
-  const connectButton = document.getElementById("connect-button");
-  connectButton.style.display = "none";
-}
 
 function updateTotalPriceAndCartDisplay() {
   const totalPrice = calculateTotalPrice();
