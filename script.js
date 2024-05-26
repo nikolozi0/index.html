@@ -162,9 +162,9 @@ function handleBarcodeInput(barcode) {
   findProductByBarcodeFromGoogleSheets(barcode).then((product) => {
     if (product) {
       addToCart(product);
-      retrieveCurrentWeight().then((currentWeight) => {
-        compareProductWeight(currentWeight);
-      });
+     
+      compareProductWeight(currentWeight);
+      
     } else {
       console.log("Product not found for barcode:", barcode);
     }
@@ -200,17 +200,25 @@ function compareProductWeight() {
   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
   const selectedLanguage = document.getElementById("language-select").value;
+  const purchaseButton = document.getElementById("purchase-button");
+
 
   if (weightDifference <= 0.1) {
     weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
+    purchaseButton.disabled = false; // Enable the purchase button
+
   } else {
     weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} units.`;
+    purchaseButton.disabled = true; // Disable the purchase button
+
   }
 
   accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(3)} units`;
 
-  accumulatedWeightElement.classList.remove("hidden");
-  weightComparisonResultElement.classList.remove("hidden");
+  if (!purchaseButtonClicked) {
+    accumulatedWeightElement.classList.remove("hidden");
+    weightComparisonResultElement.classList.remove("hidden");
+  }
 
   if (accumulatedWeight <= 0) {
     accumulatedWeightElement.classList.add("hidden");
@@ -280,7 +288,7 @@ window.addEventListener("keypress", (event) => {
 }
 
 
-const nfcerrortext = document.getElementById("nfcerrortext");
+// const nfcerrortext = document.getElementById("nfcerrortext");
 const output = document.getElementById("output");
 const paymentStatus = document.getElementById("payment-status");
 let device, server, isConnected = false, nfcTestActive = false;
@@ -294,20 +302,26 @@ async function handleData(service) {
     const decoder = new TextDecoder('utf-8');
     const decodedValue = decoder.decode(value);
 
-    if (decodedValue.startsWith('WEIGHT:')) {
-      const weightValue = parseFloat(decodedValue.substring(7));
+    
+      const weightValue = parseFloat(decodedValue);
       if (!isNaN(weightValue)) {
-        output.textContent = `Weight: ${weightValue.toFixed(2)} kg`;
+        output.textContent = `${weightValue.toFixed(2)}`;
       } else {
         console.log("Invalid weight data received:", decodedValue);
       }
-    } else if (decodedValue.startsWith('NFC:')) {
-      const nfcTag = decodedValue.substring(4).trim();
-      nfcerrortext.textContent = `NFC Tag: ${nfcTag}`;
-      paymentStatus.textContent = `NFC Tag: ${nfcTag}`;
-      console.log('Received NFC data:', nfcTag);
+    if (decodedValue.startsWith('NFC:')) {
+      paymentStatus.textContent = 'Payment successful';
+      console.log('Payment successful');
+      setTimeout(() => {
+        location.reload();
+      }, 2000);
     } else {
-      console.log('Unexpected data received:', decodedValue);
+      const weightValue = parseFloat(decodedValue);
+      if (!isNaN(weightValue)) {
+        output.textContent = `${weightValue.toFixed(2)}`;
+      } else {
+        console.log("Invalid weight data received:", decodedValue);
+      }
     }
   });
 }
@@ -347,16 +361,16 @@ connectButton.addEventListener("click", async () => {
   connectButton.style.display = "none";
 });
 
-const nfcTestButton = document.getElementById('nfc-test-button');
-nfcTestButton.addEventListener('click', () => {
-  if (isConnected) {
-    nfcTestActive = true;
-    nfcerrortext.textContent += 'Scanning NFC tag...\n';
-    console.log('NFC test activated');
-  } else {
-    console.log('Bluetooth device is not connected.');
-  }
-});
+// const nfcTestButton = document.getElementById('nfc-test-button');
+// nfcTestButton.addEventListener('click', () => {
+//   if (isConnected) {
+//     nfcTestActive = true;
+//     nfcerrortext.textContent += 'Scanning NFC tag...\n';
+//     console.log('NFC test activated');
+//   } else {
+//     console.log('Bluetooth device is not connected.');
+//   }
+// });
 
 const paymentButton = document.getElementById("payment-button");
 paymentButton.addEventListener("click", () => {
@@ -397,7 +411,8 @@ function togglePaymentSection() {
   const paymentSection = document.getElementById("payment-section");
   paymentSection.classList.toggle("hidden");
 
-  // Retrieve the total price from the hidden input field and display it
+
+
   const purchaseButton = document.getElementById("purchase-button");
   const totalPriceElement = document.getElementById("total-price");
   purchaseButton.classList.add("hidden");
@@ -409,6 +424,19 @@ function togglePaymentSection() {
       totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
   }
 }
+
+let purchaseButtonClicked = false;
+
+const purchaseButton = document.getElementById("purchase-button");
+purchaseButton.addEventListener("click", () => {
+  const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+  const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+
+  accumulatedWeightElement.classList.add("hidden");
+  weightComparisonResultElement.classList.add("hidden");
+
+  purchaseButtonClicked = true; // Set the flag to true when the purchase button is clicked
+});
 
 
 const translations = {
