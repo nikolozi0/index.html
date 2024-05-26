@@ -249,7 +249,7 @@ input[type="text"], input[type="number"], select {
   }
   
 .payment-button {
-    background-color: #4caf50;
+    background-color: #0d6efd;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -259,7 +259,7 @@ input[type="text"], input[type="number"], select {
   }
   
 .payment-button:hover {
-    background-color: #45a049;
+    background-color: #0d6efd;
   }
   
 #payment-status {
