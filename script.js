@@ -197,13 +197,13 @@ function compareProductWeight() {
   console.log("Accumulated Weight:", accumulatedWeight);
   console.log("Weight Difference:", weightDifference);
 
-  // const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+  const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
   const selectedLanguage = document.getElementById("language-select").value;
   const purchaseButton = document.getElementById("purchase-button");
 
 
-  if (weightDifference <= 0.01) {
+  if (weightDifference <= 0.1) {
     weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
     weightComparisonResultElement.style.color = 'green'; // Set text color to green
     purchaseButton.disabled = false; // Enable the purchase button
@@ -215,15 +215,15 @@ function compareProductWeight() {
 
   }
 
-  accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(3)} units`;
+  // accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(3)} units`;
 
   if (!purchaseButtonClicked) {
-    accumulatedWeightElement.classList.remove("hidden");
+    // accumulatedWeightElement.classList.remove("hidden");
     weightComparisonResultElement.classList.remove("hidden");
   }
 
   if (accumulatedWeight <= 0) {
-    accumulatedWeightElement.classList.add("hidden");
+    // accumulatedWeightElement.classList.add("hidden");
     weightComparisonResultElement.classList.add("hidden");
   }
 }
