@@ -205,10 +205,12 @@ function compareProductWeight() {
 
   if (weightDifference <= 0.1) {
     weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
+    weightComparisonResultElement.style.color = 'green'; // Set text color to green
     purchaseButton.disabled = false; // Enable the purchase button
 
   } else {
-    weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} units.`;
+    weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} g.`;
+    weightComparisonResultElement.style.color = 'red'; // Set text color to red
     purchaseButton.disabled = true; // Disable the purchase button
 
   }
@@ -312,6 +314,10 @@ async function handleData(service) {
     if (decodedValue.startsWith('NFC:')) {
       paymentStatus.textContent = 'Payment successful';
       console.log('Payment successful');
+      const otherElements = document.querySelectorAll("#payment-section > :not(#payment-status)");
+      otherElements.forEach(element => {
+        element.style.display = "none";
+      });
       setTimeout(() => {
         location.reload();
       }, 2000);
@@ -346,8 +352,12 @@ async function connectBluetoothAndNFC() {
     device.addEventListener('gattserverdisconnected', () => {
       console.log('Bluetooth device disconnected');
       isConnected = false;
+      const connectButton = document.getElementById("connect-button");
+      connectButton.style.display = "block";
     });
 
+    const connectButton = document.getElementById("connect-button");
+    connectButton.style.display = "none"; 
     isConnected = true;
   } catch (error) {
     console.error('Error connecting to Bluetooth device:', error);
@@ -441,7 +451,7 @@ purchaseButton.addEventListener("click", () => {
 
 const translations = {
   en: {
-    headerTitle: "Smart Cart Software",
+    headerTitle: "CartWell",
     totalPrice: "Total Price: ₾",
     totalAmount: "Total Amount: ₾",
     purchaseButton: "Purchase",
@@ -457,7 +467,7 @@ const translations = {
     priceName: " - ₾"
   },
   ka: {
-    headerTitle: "ჭკვიანი ურიკა",
+    headerTitle: "ქართველი",
     totalPrice: "სრული ფასი: ₾",
     totalAmount: "სრული თანხა: ₾",
     purchaseButton: "შეძენა",
