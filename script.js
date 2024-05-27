@@ -197,7 +197,7 @@ function compareProductWeight() {
   console.log("Accumulated Weight:", accumulatedWeight);
   console.log("Weight Difference:", weightDifference);
 
-  const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+  // const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
   const selectedLanguage = document.getElementById("language-select").value;
   const purchaseButton = document.getElementById("purchase-button");
