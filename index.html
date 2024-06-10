@@ -41,19 +41,33 @@
             <input type="hidden" id="hidden-total-price" value="0">
 
             <!-- Add a section to display the payment functionalities -->
-            <section id="payment-section" class="hidden">
-                <h2>Payment</h2>
-                <p class="total-amount">Total Amount: <span id="total-amount">$0.00</span></p>
-                <button id="payment-button" class="payment-button">Process Payment</button>
-                <p id="payment-status"></p>
-                <button id="retry-button" style="display: none;">Retry Payment</button>
-                <div id="transaction-history"></div>
-            </section>
-
+            
             <!-- Modify the puchase button to toggle the payment section -->
             <button id="purchase-button" style="margin-top: 12px;" disabled onclick="togglePaymentSection() ">Purchase</button>
         </div>
-
+        <section id="payment-section" class="hidden">
+          <div class="payment-header">
+              <button class="back-button" id="back_b">Back</button>
+              <h2 style="padding-right: 27rem;">Payment</h2>
+          </div>
+          <div class="payment-content">
+              <p class="total-amount">Total Amount: <span id="total-amount">$0.00</span></p>
+              <div class="payment-options">
+                  <div class="payment-option" id="bank-of-georgia">
+                      <img src="/img/images.png" alt="Bank of Georgia" class="payment-option-img">
+                      <span>Bank of Georgia</span>
+                  </div>
+                  <div class="payment-option" id="tbc-bank">
+                      <img src="/img/tbcbank.png" alt="TBC Bank" class="payment-option-img">
+                      <span>TBC Bank</span>
+                  </div>
+              </div>
+              <!-- <button id="payment-button" class="payment-button">Process Payment</button> -->
+              <p id="payment-status"></p>
+              <button id="retry-button" style="display: none;">Retry Payment</button>
+              <div id="transaction-history"></div>
+          </div>
+      </section>
     </div>
 
     <script src="https://apis.google.com/js/api.js"></script>
@@ -71,6 +85,7 @@
             });
         });
       }
+     
     </script>
 </body>
 </html>

@@ -167,6 +167,89 @@ input[type="text"], input[type="number"], select {
 
 
 
+#payment-section {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-top: 20px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.payment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.payment-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.total-amount {
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.payment-options {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.payment-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 10px;
+    cursor: pointer;
+}
+
+.payment-option-img {
+    max-width: 100px;
+    max-height: 100px;
+    margin-bottom: 10px;
+}
+
+.payment-button {
+    background-color: #ff5d37;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 10px;
+}
+
+#payment-status {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+#retry-button {
+    background-color: #ff5d37;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: none;
+}
+
+#transaction-history {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 20px;
+    width: 100%;
+}
+
 
 @media only screen and (max-width: 600px) {
     header h1 {
@@ -234,7 +317,7 @@ input[type="text"], input[type="number"], select {
 }
 
 .hidden {
-    display: none;
+    display: none!important; 
 }
 
 

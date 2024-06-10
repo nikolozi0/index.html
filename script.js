@@ -46,6 +46,8 @@ function removeFromCart(product) {
     const removedProduct = cartProducts.get(product.barcode);
     cartProducts.delete(product.barcode);
     const weightDifference = removedProduct.accumulatedWeight;
+
+    updateAccumulatedWeight(-weightDifference);
     updateTotalPriceAndCartDisplay();
     updateCartDisplay();
     const newAccumulatedWeight = calculateAccumulatedWeight();
@@ -53,11 +55,16 @@ function removeFromCart(product) {
   }
 }
 
+function updateAccumulatedWeight(weightChange) {
+  let accumulatedWeight = calculateAccumulatedWeight();
+  accumulatedWeight += weightChange; // Add or subtract weight change
+}
+
 // Function to add a product to the cart and update the cart display
 function addToCart(product) {
   const newProduct = { ...product, quantity: 1, accumulatedWeight: product.weight ? product.weight : 0 };
-  cartProducts.set(product.barcode + '_' + Date.now(), newProduct); // Append a unique identifier to treat each addition as a new product
-  
+  cartProducts.set(product.barcode + '_' + Date.now(), newProduct); 
+
   updateTotalPriceAndCartDisplay();
   updateCartDisplay();
   compareProductWeight();
@@ -163,7 +170,7 @@ function handleBarcodeInput(barcode) {
     if (product) {
       addToCart(product);
      
-      compareProductWeight(currentWeight);
+      // compareProductWeight(currentWeight);
       
     } else {
       console.log("Product not found for barcode:", barcode);
@@ -171,14 +178,15 @@ function handleBarcodeInput(barcode) {
   });
 }
 
-let previousWeight = 0;
 let currentWeight = 0; 
+
 
 // Function to compare the product's weight and display the result
 function compareProductWeight() {
   const weightDisplayElement = document.getElementById("output");
   const currentWeightText = weightDisplayElement ? weightDisplayElement.textContent : "";
   let currentWeight;
+  let isWeightToleranceValid = false;
 
   // Check if currentWeightText is a valid number
   if (!isNaN(parseFloat(currentWeightText))) {
@@ -192,6 +200,7 @@ function compareProductWeight() {
   const weightDifference = Math.abs(currentWeight - accumulatedWeight);
   const roundedWeightDifference = weightDifference.toFixed(3);
 
+  weightDisplayElement.textContent = currentWeight.toFixed(2);
 
   console.log("Current Weight:", currentWeight);
   console.log("Accumulated Weight:", accumulatedWeight);
@@ -202,27 +211,36 @@ function compareProductWeight() {
   const selectedLanguage = document.getElementById("language-select").value;
   const purchaseButton = document.getElementById("purchase-button");
 
+  
 
-  if (weightDifference <= 0.1) {
-    weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
-    weightComparisonResultElement.style.color = 'green'; // Set text color to green
-    purchaseButton.disabled = false; // Enable the purchase button
-
+  if (cartProducts.size > 0) {
+    if (weightDifference <= 0.1) {
+      weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
+      weightComparisonResultElement.style.color = 'green'; // Set text color to green
+      purchaseButton.disabled = false; // Enable the purchase button
+      weightComparisonResultElement.classList.remove("hidden");
+      isWeightToleranceValid = true; // Set the weight tolerance as valid
+    } else {
+      weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} g.`;
+      weightComparisonResultElement.style.color = 'red'; // Set text color to red
+      purchaseButton.disabled = true; // Disable the purchase button
+      weightComparisonResultElement.classList.remove("hidden");
+      isWeightToleranceValid = false; // Set the weight tolerance as invalid
+    }
   } else {
-    weightComparisonResultElement.textContent = `Weight weightdifference detected: ${roundedWeightDifference} g.`;
-    weightComparisonResultElement.style.color = 'red'; // Set text color to red
-    purchaseButton.disabled = true; // Disable the purchase button
-
+    weightComparisonResultElement.classList.add("hidden");
+    // purchaseButton.disabled = true;
+    isWeightToleranceValid = false; // Set the weight tolerance as invalid when the cart is empty
   }
 
   // accumulatedWeightElement.textContent = `${translations[selectedLanguage].accumulatedWeight}${accumulatedWeight.toFixed(3)} units`;
 
-  if (!purchaseButtonClicked) {
-    // accumulatedWeightElement.classList.remove("hidden");
-    weightComparisonResultElement.classList.remove("hidden");
-  }
+  // if (!purchaseButtonClicked) {
+  //   // accumulatedWeightElement.classList.remove("hidden");
+  //   weightComparisonResultElement.classList.remove("hidden");
+  // }
 
-  if (accumulatedWeight <= 0) {
+  if (accumulatedWeight < 0) {
     // accumulatedWeightElement.classList.add("hidden");
     weightComparisonResultElement.classList.add("hidden");
   }
@@ -243,7 +261,8 @@ setInterval(() => {
       compareProductWeight(currentWeight);
     }
   }
-}, 100);
+}, 0);
+
 
 
 
@@ -307,7 +326,7 @@ async function handleData(service) {
     
       const weightValue = parseFloat(decodedValue);
       if (!isNaN(weightValue)) {
-        output.textContent = `${weightValue.toFixed(2)}`;
+        output.textContent = `${weightValue.toFixed(4)}`;
       } else {
         console.log("Invalid weight data received:", decodedValue);
       }
@@ -324,7 +343,7 @@ async function handleData(service) {
     } else {
       const weightValue = parseFloat(decodedValue);
       if (!isNaN(weightValue)) {
-        output.textContent = `${weightValue.toFixed(2)}`;
+        output.textContent = `${weightValue.toFixed(4)}`;
       } else {
         console.log("Invalid weight data received:", decodedValue);
       }
@@ -382,16 +401,16 @@ connectButton.addEventListener("click", async () => {
 //   }
 // });
 
-const paymentButton = document.getElementById("payment-button");
-paymentButton.addEventListener("click", () => {
-  if (isConnected) {
-    nfcTestActive = true;
-    paymentStatus.textContent += 'Processing payment...\n';
-    console.log('Payment process activated');
-  } else {
-    console.log('Bluetooth device is not connected.');
-  }
-});
+// const paymentButton = document.getElementById("payment-button");
+// paymentButton.addEventListener("click", () => {
+//   if (isConnected) {
+//     nfcTestActive = true;
+//     paymentStatus.textContent += 'Processing payment...\n';
+//     console.log('Payment process activated');
+//   } else {
+//     console.log('Bluetooth device is not connected.');
+//   }
+// });
 
 
 
@@ -419,35 +438,98 @@ function updateTotalPriceAndCartDisplay() {
 // Function to toggle the payment section visibility
 function togglePaymentSection() {
   const paymentSection = document.getElementById("payment-section");
-  paymentSection.classList.toggle("hidden");
-
-
-
-  const purchaseButton = document.getElementById("purchase-button");
-  const totalPriceElement = document.getElementById("total-price");
-  purchaseButton.classList.add("hidden");
-  totalPriceElement.classList.add("hidden");
-  const hiddenTotalPriceInput = document.getElementById("hidden-total-price");
-  const totalAmountElement = document.getElementById("total-amount");
-  const totalPrice = parseFloat(hiddenTotalPriceInput.value);
-  if (totalAmountElement) {
-      totalAmountElement.textContent = `$${totalPrice.toFixed(2)}`;
-  }
-}
-
-let purchaseButtonClicked = false;
-
-const purchaseButton = document.getElementById("purchase-button");
-purchaseButton.addEventListener("click", () => {
+  const cartDiv = document.querySelector(".cart");
   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
   const weightComparisonResultElement = document.getElementById("weight-comparison-result");
 
-  accumulatedWeightElement.classList.add("hidden");
-  weightComparisonResultElement.classList.add("hidden");
+ 
+      accumulatedWeightElement.classList.add("hidden");
+      weightComparisonResultElement.classList.add("hidden");
+      paymentSection.classList.remove("hidden");
+
+      // Create a back button
+      const backButton = document.getElementById("back_b");
+
+      backButton.addEventListener("click", undoTogglePaymentSection);
+  
 
   purchaseButtonClicked = true; // Set the flag to true when the purchase button is clicked
+}
+
+function undoTogglePaymentSection() {
+  const paymentSection = document.getElementById("payment-section");
+  const cartDiv = document.querySelector(".cart");
+  const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+  const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+
+ 
+      // Remove the payment section from the cart div
+      accumulatedWeightElement.classList.remove("hidden");
+      weightComparisonResultElement.classList.remove("hidden");
+      paymentSection.classList.add("hidden");
+
+    
+  
+
+  purchaseButtonClicked = false; // Set the flag to false when the back button is clicked
+}
+
+  
+// const backButton = document.querySelector("#payment-section");
+// const paymentSection = document.getElementById("payment-section");
+// const weightComparisonResultElement = document.getElementById("weight-comparison-result");
+// const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+// const cartSection = document.querySelector(".cart");
+
+// backButton.addEventListener("click", () => {
+//     paymentSection.classList.add("hidden");
+//     cartSection.classList.remove("hidden");
+//     weightComparisonResultElement.classList.remove("hidden");
+//     accumulatedWeightElement.classList.remove("hidden");
+
+    
+//     paymentStatus.textContent = ""; // Clear the payment status
+//     purchaseButton.disabled = false; // Re-enable the "Purchase" button
+
+//     // Add any other logic or UI updates needed for the cart view
+// });
+
+const paymentOptions = document.querySelectorAll(".payment-option");
+
+paymentOptions.forEach((option) => {
+    option.addEventListener("click", () => {
+      if (isConnected) {
+        nfcTestActive = true;
+        paymentStatus.textContent += 'Processing payment...\n';
+        console.log('Payment process activated');
+      } else {
+        console.log('Bluetooth device is not connected.');
+      }
+    });
 });
 
+// let purchaseButtonClicked = false;
+// const purchaseButton = document.getElementById("purchase-button");
+// purchaseButton.addEventListener("click", () => {
+//   const accumulatedWeightElement = document.getElementById("accumulated-Weight");
+//   // const weightComparisonResultElement = documentgetElementById("weight-comparison-result");
+
+//   accumulatedWeightElement.classList.add("hidden");
+//   // weightComparisonResultElement.classList.add("hidden");
+
+//   // Check if there are items in the cart using product barcodes as keys
+//   const hasItemsInCart = Object.keys(cartProducts).size > 0; // Assuming cartProducts is a Map
+
+//   // const isWeightToleranceValid = !weightComparisonResultElement.classList.contains('hidden');
+
+//   if (!hasItemsInCart && isWeightToleranceValid) {
+//     togglePaymentSection();
+//   } else {
+//     console.log("Cart is empty or weight tolerance is incorrect.");
+//   }
+
+//   purchaseButtonClicked = true; // Set the flag to true when the purchase button is clicked
+// });
 
 const translations = {
   en: {
