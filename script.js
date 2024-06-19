@@ -166,6 +166,11 @@ function handleBarcodeInput(barcode) {
     return;
   }
 
+  if (purchaseButtonClicked) {
+    console.log("Cannot add new products after clicking the Purchase button.");
+    return;
+  }
+
   findProductByBarcodeFromGoogleSheets(barcode).then((product) => {
     if (product) {
       addToCart(product);
@@ -390,6 +395,26 @@ connectButton.addEventListener("click", async () => {
   connectButton.style.display = "none";
 });
 
+const paymentOptions = document.querySelectorAll(".payment-option");
+
+paymentOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    if (isConnected && !nfcTestActive) {
+      nfcScanActive = true;
+      nfcTestActive = true;
+      paymentStatus.textContent += 'Processing payment...\n';
+      console.log('Payment process activated');
+
+      // Reset nfcScanActive flag after 10 seconds
+      setTimeout(() => {
+        nfcScanActive = false;
+      }, 10000);
+    } else {
+      console.log('Bluetooth device is not connected or NFC scan is already active.');
+    }
+  });
+});
+
 // const nfcTestButton = document.getElementById('nfc-test-button');
 // nfcTestButton.addEventListener('click', () => {
 //   if (isConnected) {
@@ -434,6 +459,14 @@ function updateTotalPriceAndCartDisplay() {
   const purchaseButton = document.getElementById("purchase-button");
   purchaseButton.disabled = totalPrice <= 0;
 }
+
+let purchaseButtonClicked = false;
+
+const purchaseButton = document.getElementById("purchase-button");
+purchaseButton.addEventListener("click", () => {
+  togglePaymentSection();
+  purchaseButtonClicked = true; // Set the flag to true when the purchase button is clicked
+});
 
 // Function to toggle the payment section visibility
 function togglePaymentSection() {
@@ -494,19 +527,7 @@ function undoTogglePaymentSection() {
 //     // Add any other logic or UI updates needed for the cart view
 // });
 
-const paymentOptions = document.querySelectorAll(".payment-option");
 
-paymentOptions.forEach((option) => {
-    option.addEventListener("click", () => {
-      if (isConnected) {
-        nfcTestActive = true;
-        paymentStatus.textContent += 'Processing payment...\n';
-        console.log('Payment process activated');
-      } else {
-        console.log('Bluetooth device is not connected.');
-      }
-    });
-});
 
 // let purchaseButtonClicked = false;
 // const purchaseButton = document.getElementById("purchase-button");
