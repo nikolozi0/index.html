@@ -504,7 +504,7 @@ function undoTogglePaymentSection() {
     
   
 
-  purchaseButtonClicked = false; // Set the flag to false when the back button is clicked
+  purchaseButtonClicked = false; 
 }
 
   

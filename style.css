@@ -65,7 +65,7 @@ header h1 {
 
 
 .outerDiv{
-    flex: 0 -1 calc(50% - 10px); /* Adjust the value as needed */
+    flex: 0 -1 calc(50% - 10px); 
     margin: 5px; /* Adjust the value as needed */
     box-sizing: border-box;
     padding: 1rem;
