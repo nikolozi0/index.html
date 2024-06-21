@@ -219,7 +219,7 @@ function compareProductWeight() {
   
 
   if (cartProducts.size > 0) {
-    if (weightDifference <= 0.1) {
+    if (weightDifference <= 0.02) {
       weightComparisonResultElement.textContent = `Weight matches within tolerance.`;
       weightComparisonResultElement.style.color = 'green'; // Set text color to green
       purchaseButton.disabled = false; // Enable the purchase button
